@@ -37,10 +37,12 @@ bootm 0x44000000              # if an unsigned FIT boots, secure boot is NOT enf
 
 ---
 
-## Phase 1 — Harvest the hardware description (no flashing)
+## Phase 1 — Harvest the hardware description (no flashing)  — ✅ done (from firmware)
 
-Everything here comes from the **stock QSDK-OpenWrt firmware** and/or a live unit. This is the big
-shortcut: we translate EnGenius's downstream sources instead of reverse-engineering the board.
+Done offline from de-obfuscated stock firmware (both FIT 1.1.30 and native managed v3.9.3.2) — the
+decompiled OEM DTS and WiFi board data are in `reference/`. Everything here comes from the **stock
+QSDK-OpenWrt firmware**: we translate EnGenius's downstream sources instead of reverse-engineering the
+board. (1b, the live-unit pull, is superseded — only per-device ART caldata still needs the unit.)
 
 ### 1a. From the firmware image (already have de-obfuscated FITs locally)
 
@@ -82,29 +84,36 @@ Prove the SoC/DDR/console under OpenWrt **without writing flash**.
 
 ---
 
-## Phase 3 — Device tree for `ap-hk07`
+## Phase 3 — Device tree for `ap-hk07`  — ✅ largely drafted (offline)
 
-Fork the closest in-tree IPQ8074 4×4 DTS and port using `hk07-oem.dts` as the map of truth:
+Done from the decompiled OEM `fdt@hk07` (see `reference/`); DTS lives at
+`target/linux/qualcommax/dts/ipq8072-engenius-ews377ap-v3.dts` on the fork branch `ews377ap-v3`,
+derived from `ipq8071-ap8220` (the closest in-tree 2.5G IPQ8072 AP).
 
-- **Partitions:** transcribe from `/proc/mtd` / OEM DTS (DEVCFG/APPSBLENV/APPSBL/cert/ART/rootfs A/B).
-- **Ethernet:** re-express QSDK `ess-switch`/`edma` as mainline `ipqess` + `qca8075`/`qca807x` PHY;
-  copy PHY addresses and the uplink port role from the OEM DTS.
-- **LEDs + button:** map `gpio-leds` / `gpio-keys` GPIO numbers + active-high/low straight across.
-- **Pre-cal:** point ath11k at **ART (mtd11)** so it reads per-device RF calibration.
+- ✅ **Partitions:** SMEM-defined → `qcom,smem-part` auto-reads DEVCFG/APPSBLENV/APPSBL/cert/ART/rootfs.
+- ✅ **Ethernet:** QSDK `ess-switch` translated to mainline — 2.5G uplink = QCA8081 @ MDIO 28, ESS
+  **port@6 via uniphy2** (USXGMII); `ethernet-phy-id004d.d101`. Single `lan` (shipping fw uses one
+  `eth0`); the reference QCA8075 5×GbE block is documented but omitted.
+- ✅ **LEDs + button:** RGB status LED gpio-leds on GPIO 54/55/56 (active-high); reset GPIO 52
+  active-low. NOTE: functional pwr/lan/wifi LEDs use the `qca,ledc` controller with **no mainline
+  driver** — not portable.
+- **Pre-cal:** ath11k reads per-device caldata from **ART (mtd11)** — verify on hardware.
 
-**Deliverable:** `ap-hk07.dts` that compiles and boots to a working console + ethernet.
+**Deliverable:** `ipq8072-engenius-ews377ap-v3.dts` — drafted; boots to be proven at Phase 2.
 
 ---
 
-## Phase 4 — WiFi (the fiddly one)
+## Phase 4 — WiFi  — ✅ board data identified (offline)
 
-Stock uses QSDK `qca-wifi`/QSDK-ath11k; mainline uses **ath11k**. The RF ingredients are in the OEM
-`/lib/firmware/IPQ8074`, but mainline ath11k looks up a board file by a **board-ID string** from SMEM.
+Stock uses QSDK `qca-wifi`; mainline uses **ath11k**, which looks up board data by a board-ID string.
 
-1. Extract OEM `bdwlan*` / caldata + note the board-ID the OEM build uses.
-2. Either find a matching board-ID already in upstream `ath11k-firmware`, **or** repackage the OEM bdf
-   into a mainline `board-2.bin` with the correct ID.
-3. Verify per-device caldata handoff from ART; confirm TX power / reg-domain look sane.
+- ✅ **Board id known:** both OEM DTBs set `qcom,board_id = <0x290>`; OEM `senaoBDF.note` maps that to
+  board-data blob **`bdwlan.b290`** (shared with ECW230v3). Blob + `ath11k-bdencoder` recipe staged in
+  `reference/wifi-board-data/`.
+- **Remaining (needs first boot):** read the exact ath11k board-id/variant string from the boot log
+  (expected 0x290), pack `bdwlan.b290` into `board-2.bin`, drop into `ipq-wifi-engenius_ews377ap-v3`,
+  and set the DTS `qcom,ath11k-calibration-variant` to match.
+- **Then:** verify per-device caldata handoff from ART; confirm TX power / reg-domain look sane.
 
 **Deliverable:** both radios calibrate and pass traffic at expected power.
 
