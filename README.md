@@ -15,8 +15,22 @@ Porting notes, hardware reference, and extraction plans for bringing **mainline 
 | **Stock firmware is QSDK-based OpenWrt** | ✅ **Biggest de-risker** — DTS/board files/partitions already exist downstream (see below) |
 | Secure boot fuse | ⚠️ **The one go/no-go unknown** — must verify at u-boot; stock loads MD5-only FITs, so probably *not* fused |
 | Recovery | ✅ Dual A/B slots + UART (J2) + TFTP |
-| Ethernet performance | ⚠️ Mainline has no NSS hardware offload (QSDK-only); throughput below stock, fine for home use |
+| Ethernet performance | ⚠️ Mainline has no NSS hardware offload (QSDK-only) → below stock. **Recoverable via Target C (NSS-EDMA fork)** — see below |
 | ath11k board data (BDF) | 🟡 Extractable from firmware; may need board-ID reconciliation |
+
+## Three firmware targets
+
+| Target | What | Purpose |
+|---|---|---|
+| **A** — OEM EnGenius QSDK | stock firmware | throughput baseline to beat |
+| **B** — OpenWrt mainline | clean `qualcommax` port | upstreamable, correct, but no NSS offload |
+| **C** — OpenWrt NSS-EDMA | B + community NSS-EDMA fork (NSS offload, EDMA/PPE, ath11k offload) | recover most QSDK forwarding perf |
+
+**Do B first; C layers on the same board port.** The NSS-EDMA fork is validated on **Xiaomi AX3600 /
+IPQ8071A, not the EWS377** — its published numbers are AX3600 figures, not an EWS377 benchmark. The
+EWS377's IPQ8072A part is close enough to make NSS a plausible target, but every EWS377-specific piece
+(NSS bring-up, EDMA binding to this board's Ethernet, ECM offload engaging, ath11k offload) must be
+independently validated. See [Phase 7 in the porting plan](docs/openwrt-porting-plan.md#phase-7--target-c-nss-edma-experimental-performance).
 
 ## The key finding
 
