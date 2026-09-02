@@ -1,28 +1,15 @@
-# OpenWrt porting plan — EWS377AP v3 (`ap-hk07`, IPQ807x)
+# OpenWrt (NSS-EDMA) porting plan — EWS377AP v3 (`ap-hk07`, IPQ8072A)
 
-End-to-end plan to bring mainline OpenWrt to the EnGenius EWS377AP v3. Ordered so that the
-**go/no-go decision (secure boot)** and the **non-destructive proof (TFTP initramfs)** come before
-anything writes to flash.
+End-to-end plan to bring **OpenWrt with Qualcomm NSS offload** (the NSS-EDMA fork) to the EnGenius
+EWS377AP v3. The board is brought up first, then NSS acceleration is enabled and validated on top of
+the same port. Ordered so the **go/no-go decision (secure boot)** and the **non-destructive proof
+(TFTP initramfs)** come before anything writes to flash.
 
----
+Working tree: fork `ParkWardRR/openwrt-nss-edma`, branch `ews377ap-v3`. The OEM stock firmware is kept
+only as the throughput **baseline to measure against** — it is not a build target.
 
-## Firmware targets
-
-We track three distinct firmware targets, in ascending order of ambition. The board port
-(Phases 0–4) is shared; the targets diverge at packaging/config.
-
-| Target | What it is | Purpose |
-|---|---|---|
-| **A — OEM EnGenius QSDK image** | Stock firmware (QSDK OpenWrt) | Baseline: maximum known-good AP throughput; the number to beat |
-| **B — OpenWrt upstream/mainline** | Clean `qualcommax` port, ath11k, ipqess | Upstreamability, clean kernel/drivers, functional correctness |
-| **C — OpenWrt NSS-EDMA experimental** | Mainline-style port **plus Qualcomm NSS offload** via the community NSS-EDMA fork/feed | Performance: recover most of the QSDK forwarding throughput while keeping a mainline-shaped board port |
-
-**Do B first.** C builds on B's device tree and board files — it's the same port with an
-accelerated Ethernet/PPE stack and NSS-backed forwarding layered on. Don't chase C until B boots,
-calibrates WiFi, and passes traffic.
-
-See **[Phase 7 — Target C: NSS-EDMA](#phase-7--target-c-nss-edma-experimental-performance)** for the
-accelerated route and its EWS377-specific validation gates.
+Bring-up (Phases 0–6) gets the board booting/calibrating on the NSS-EDMA tree; Phase 7 turns on and
+validates the NSS offload that is the whole point of using this tree.
 
 ---
 
@@ -144,24 +131,22 @@ Two viable install routes; pick per how secure boot landed:
 
 ---
 
-## Phase 7 — Target C: NSS-EDMA (experimental performance)
+## Phase 7 — Enable & validate NSS offload
 
-Mainline OpenWrt on IPQ807x runs the Ethernet/PPE path on the host CPU with **no NSS hardware
-offload** (that's a QSDK-only feature), so forwarding throughput sits well below the OEM baseline.
-The viable workaround is the actively maintained community **NSS-EDMA** OpenWrt fork/feed: it drives
-the Qualcomm **NSS** offload while keeping an upstream-oriented Qualcomm **EDMA/PPE** stack on
-IPQ807x. Its stated scope includes **NAT, PPPoE, SQM, multicast, bridge, and ath11k Wi-Fi offload** —
-materially closer to the QSDK performance model than stock mainline.
+Bring-up (Phases 0–6) gets the board running on the NSS-EDMA tree, but the NSS acceleration — the
+reason for using this tree — must be explicitly turned on and proven on the EWS377. The fork drives
+the Qualcomm **NSS** block (NAT, PPPoE, SQM, multicast, bridge, ath11k Wi-Fi offload) on an
+upstream-oriented **EDMA/PPE** stack.
 
-> **Reality check on the numbers.** The fork has been validated on **Xiaomi AX3600 / IPQ8071A**, *not*
-> on the EWS377AP v3. Its reported results (NSS ECM NAT/PPPoE offload, NSS SQM at dramatically lower
-> host CPU) are **AX3600 figures, not an EWS377 benchmark** — do not represent them as such. The
-> EWS377's IPQ8072A-class part is close enough that the NSS block is a *plausible* target, but every
-> EWS377-specific piece below must be independently validated.
+> **Reality check on the numbers.** The fork is validated on **Xiaomi AX3600 / IPQ8071A**, *not* on
+> the EWS377AP v3. Its reported results (NSS ECM NAT/PPPoE offload, NSS SQM at dramatically lower host
+> CPU) are **AX3600 figures, not an EWS377 benchmark** — do not represent them as such. The EWS377's
+> IPQ8072A part is close enough that the NSS block is a *plausible* target, but every EWS377-specific
+> piece below is validated independently.
 
 ### Prerequisites
 
-- Target B (Phases 0–6) working: `ap-hk07.dts` boots, ath11k calibrates, sysupgrade + failsafe proven.
+- Phases 0–6 working: `ap-hk07.dts` boots, ath11k calibrates, sysupgrade + failsafe proven.
 - A sacrificial unit with the OEM slot still intact for rollback.
 
 ### Build
@@ -179,16 +164,16 @@ materially closer to the QSDK performance model than stock mainline.
 3. **ECM offload actually engages** — NAT/PPPoE/bridge flows show accelerated (offloaded) connections,
    not silent host-path fallback. Verify host CPU drops under load.
 4. **ath11k Wi-Fi offload** interoperates with the extracted `board-2.bin`/caldata — no regression vs.
-   Target B WiFi, TX power/reg-domain still sane.
+   the pre-offload bring-up, TX power/reg-domain still sane.
 5. **SQM under NSS** behaves (if used) — shaping accurate, no offload-vs-shaper conflict.
 6. **Stability under sustained load + thermals** — NSS paths don't wedge; watchdog/failsafe still work.
 
 ### Decision rule
 
-Keep Target C **experimental** until gates 1–4 pass on the EWS377 itself. If NSS won't bind cleanly to
-this board's Ethernet or radios, fall back to Target B (correct but slower) rather than shipping an
-unvalidated offload path. Record actual EWS377 measurements in `benchmarks/` — never reuse AX3600
-figures as a stand-in.
+Treat NSS offload as **experimental** until gates 1–4 pass on the EWS377 itself. If NSS won't bind
+cleanly to this board's Ethernet or radios, ship the same port with offload disabled (correct but
+slower) rather than an unvalidated offload path — then keep debugging NSS. Record actual EWS377
+measurements in `benchmarks/`; never reuse AX3600 figures as a stand-in.
 
 ---
 
@@ -203,7 +188,7 @@ figures as a stand-in.
 | 4 WiFi/BDF | **medium–high** | low (recoverable) |
 | 5 Packaging/install | medium | medium (flash writes) |
 | 6 Upstream | medium | none |
-| 7 Target C (NSS-EDMA) | **high** | medium (experimental; may not bind to this board — fall back to B) |
+| 7 Enable/validate NSS offload | **high** | medium (experimental; if NSS won't bind, ship with offload off) |
 
 Realistic total for someone comfortable with OpenWrt device porting: **a few focused weekends** if
 secure boot is open and a usable BDF is obtainable.
