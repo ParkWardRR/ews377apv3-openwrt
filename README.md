@@ -76,3 +76,12 @@ Full detail: [docs/hardware-reference.md](docs/hardware-reference.md)
 - Never hand-rebuild a partial u-boot env. A *valid-but-incomplete* env is worse than an erased one
   (erased → u-boot uses full compiled defaults and still boots).
 - Keep one OEM slot intact as your fallback until OpenWrt sysupgrade + failsafe are proven.
+
+## Target C — work started
+
+The NSS-EDMA port is scaffolded on a fork of the upstream-EDMA NSS tree:
+
+- **Fork:** `github.com/ParkWardRR/openwrt-nss-edma` (of `JuliusBairaktaris/openwrt-nss-edma` — NSS offload on the *upstream* qca_edma/qca_ppe stack, validated on AX3600/IPQ8071A)
+- **Branch:** `ews377ap-v3`
+- **Scaffolded:** `ipq8072-engenius-ews377ap-v3.dts` (from the EAP660HD IPQ8072 4×4 template), `Device/engenius_ews377ap-v3` image recipe (FitImage/UbiFit + stubbed Senao factory image), and the `ipq-wifi-engenius_ews377ap-v3` board-data package.
+- **Blocked on hardware extraction:** secure-boot fuse state, real GPIOs/PHY/uplink, WiFi `board-2.bin`, and the `mksenaofw` flag mapping — all marked `TODO(extract)`. See `PORT-STATUS-ews377ap-v3.md` in the fork.
