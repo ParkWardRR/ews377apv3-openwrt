@@ -1,0 +1,6 @@
+# per-device secrets / large blobs — keep out of the public-ish repo
+artifacts/
+*.dtb
+*ART*.bin
+*APPSBLENV*.bin
+*.ubi
