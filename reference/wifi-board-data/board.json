@@ -1,0 +1,13 @@
+[
+  {
+    "board": [
+      {
+        "names": [
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=656",
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=656,variant=EnGenius-EWS377AP-v3"
+        ],
+        "data": "bdwlan.b290"
+      }
+    ]
+  }
+]
