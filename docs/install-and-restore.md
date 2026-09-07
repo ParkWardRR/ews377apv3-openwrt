@@ -1,118 +1,245 @@
-# Install OpenWrt on the EWS377AP v3 — and restore to stock
+# Install OpenWrt on the EnGenius EWS377AP v3 — the friendly guide
 
-Community/unofficial OpenWrt for the EnGenius **EWS377AP v3** (`ap-hk07`, Qualcomm
-IPQ8072A). Validated on hardware: persistent NAND boot, Ethernet, WiFi (WPA2), config
-survives reboots.
+This walks you all the way from stock EnGenius firmware to a working **OpenWrt**
+router, and back again if you change your mind. There are two ways to do it — an
+**easy way** (no tools, if it pans out) and a **reliable way** (a serial cable, always
+works). Pick the one that fits you.
 
-> **Downloads:** [Releases](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)
-> (tag `v0.1`). Verify `SHA256SUMS` before flashing.
-
-## ⚠️ Read this first
-- **You can brick your AP.** Unofficial; overwrites the OEM firmware.
-- **Only the UART + u-boot method (Method A) is hardware-proven.** The web-upload
-  `.bin` (Method B) and QSDK FIT (Method C) match the OEM format but are
-  **community-untested** — only try them with UART recovery on hand.
-- **Single-slot install:** OpenWrt lands on slot 0; there is **no on-device OEM
-  fallback** afterward. **Back up your own NAND first** (Part 1) — your MAC and radio
-  calibration are unique; never reuse someone else's dump.
-- **Never erase or write the ART partition or the region below `0x1000000`.** Losing
-  ART is a true brick.
-- Secure boot was **unfused** on the test unit. If yours is fused, custom images
-  won't boot and you'd restore OEM.
-
-## Images
-| File | Purpose | Status |
-|---|---|---|
-| `…-squashfs-factory.ubi` | bare UBI — Method A (`nand write` to slot 0) | ✅ proven |
-| `…-initramfs-uImage.itb` | RAM boot (dry-run / recovery, nothing written) | ✅ proven |
-| `…-squashfs-sysupgrade.bin` | upgrades once on OpenWrt | standard |
-| `…-web-ui-factory.bin` | OEM web/LuCI updater (Method B) | ⚠️ untested |
-| `…-squashfs-qsdk-factory.itb` | OEM CLI updater (Method C) | ⚠️ untested |
-
-## Partition map (256 MiB NAND)
-| Region | Offset | Size | Note |
-|---|---|---|---|
-| bootloader / config / **ART** | `0x0`–`0x1000000` | 16 MiB | **never touch** |
-| `rootfs` (slot 0) | `0x1000000` | 111 MiB | ← OpenWrt goes here |
-| `0:wififw` | `0x7f00000` | 9 MiB | leave as-is |
-| `rootfs_1` (slot 1) | `0x8800000` | 111 MiB | OEM A/B slot (unused by OpenWrt) |
-| `0:wififw_1` | `0xf700000` | 9 MiB | leave as-is |
-
-Slot chosen by u-boot `active_fw` (`0` = slot 0).
-
-## Prerequisites
-- USB-TTL serial adapter (**3.3V**) on the console header **J2**, **115200 8N1**.
-- A TFTP server reachable from the AP over LAN.
-- Downloaded images, checksums verified.
+New to flashing? Don't worry — every step says exactly what to type and what you
+should see. A short [glossary](#glossary-plain-english) at the end explains the jargon
+(UART, u-boot, "slot", "brick"). If a word is unfamiliar, it's defined there.
 
 ---
 
-## Part 1 — Back up YOUR device first (do not skip)
-Interrupt u-boot, then dump each OS/critical partition to TFTP and keep the files safe:
-```
-setenv ipaddr <ap-ip> ; setenv serverip <tftp-ip> ; ping $serverip
-nand read 0x44000000 0x1000000 0x6f00000 ; tftpput 0x44000000 0x6f00000 oem-rootfs.bin
-nand read 0x44000000 0x8800000 0x6f00000 ; tftpput 0x44000000 0x6f00000 oem-rootfs_1.bin
-nand read 0x44000000 0x7f00000 0x900000  ; tftpput 0x44000000 0x900000  oem-wififw.bin
-```
-Also save your `printenv` output (esp. `ethaddr` and any serial fields). These are
-your only rollback once slot 0 is overwritten.
+## 0. Is this for you? (30-second read)
 
-## Part 2 — Install OpenWrt (Method A, proven)
-Optional dry run (RAM only, nothing written): `tftpboot 0x44000000 …-initramfs-uImage.itb ; bootm 0x44000000`, look around, power-cycle back.
+- **Hardware:** EnGenius **EWS377AP v3** only (Qualcomm IPQ8072A, board `ap-hk07`).
+  Not the v1/v2, not other models.
+- **What you get:** real OpenWrt — LuCI web UI, SSH, package manager — instead of the
+  locked vendor firmware. No cloud, no controller.
+- **The risk, honestly:** flashing firmware can **brick** (permanently kill) a device.
+  This build is community-made and unofficial. We've designed the steps to be
+  recoverable, but *you* are responsible for your hardware.
+- **Golden rule:** **make your own backup first** (Section 2). Your access point's
+  Wi-Fi calibration and MAC address are unique to it — no one else's backup can
+  replace them.
 
-Flash to slot 0:
+---
+
+## 1. Pick your path
+
+<!-- METHOD-B-STATUS: pending -->
+> 🧪 **Easy path (web upload) status: NOT YET CONFIRMED ON HARDWARE.**
+> The one-click web-upload image is built and matches the vendor's format, but at the
+> time of writing it hasn't been proven on a real unit yet. Until this line says
+> "✅ CONFIRMED", treat the easy path as experimental and **only use it if you also
+> have a serial cable ready** to recover. The reliable path below is fully proven.
+
+| | 🟢 Reliable path (recommended) | 🟡 Easy path |
+|---|---|---|
+| **How** | Serial cable + bootloader commands | Upload one file in the vendor web page |
+| **Tools needed** | A USB-to-serial (UART) adapter, ~$10, and opening the case | Nothing — just a browser |
+| **Difficulty** | Moderate (copy-paste commands) | Easy |
+| **Proven?** | ✅ Yes, on real hardware | 🧪 See the status box above |
+| **If it goes wrong** | You're already on serial — recover in place | You'll *need* a serial cable to recover |
+| **Go to** | [Section 4](#4-reliable-path--serial-cable) | [Section 3](#3-easy-path--web-upload) |
+
+**Our honest advice:** if you own a USB-serial adapter (or can borrow one), use the
+reliable path — it can't strand you. If you have no adapter and the status box above
+says the easy path is confirmed, the easy path is genuinely one click.
+
+---
+
+## 2. Back up your device FIRST (everyone, no exceptions)
+
+You need a serial cable for a *complete* backup (and the reliable path needs one
+anyway). If you truly can't get one and are using the easy path, at minimum download
+an **official EnGenius EWS377AP v3 firmware `.bin`** from EnGenius's site and keep it —
+it's your fallback to reinstall stock later.
+
+**Full backup over serial (recommended):** connect UART (Section 4.1), interrupt the
+bootloader, then:
 ```
-setenv ipaddr <ap-ip> ; setenv serverip <tftp-ip> ; ping $serverip
+setenv ipaddr <your-ap-ip> ; setenv serverip <your-pc-ip> ; ping $serverip
+nand read 0x44000000 0x1000000 0x6f00000 ; tftpput 0x44000000 0x6f00000 backup-rootfs.bin
+nand read 0x44000000 0x8800000 0x6f00000 ; tftpput 0x44000000 0x6f00000 backup-rootfs_1.bin
+nand read 0x44000000 0x7f00000 0x900000  ; tftpput 0x44000000 0x900000  backup-wififw.bin
+printenv
+```
+(`tftpput` sends the file to a TFTP server on your PC — see Section 4.2.) Copy the
+`printenv` output into a text file too. **Keep these off the device.** They're how you
+get stock back byte-for-byte (Section 6).
+
+> You do **not** need to (and must not) back up or write the ART / bootloader area
+> below `0x1000000`. Leaving it untouched is what keeps recovery possible.
+
+---
+
+## 3. Easy path — web upload
+
+> Re-read the status box in [Section 1](#1-pick-your-path) first. If it isn't
+> confirmed yet, keep a serial cable handy.
+
+1. Make sure you're on stock EnGenius firmware and can reach its web interface.
+2. Download **`…-web-ui-factory.bin`** and **`SHA256SUMS`** from the
+   [release](https://github.com/ParkWardRR/ews377apv3-openwrt/releases), and check it:
+   ```
+   sha256sum -c SHA256SUMS --ignore-missing
+   ```
+   It must say `OK`. If it doesn't, re-download — do not flash a bad file.
+3. In the EnGenius web UI, open the **firmware upgrade** page and upload
+   `…-web-ui-factory.bin`. Let it finish and reboot **without** cutting power.
+4. After a minute or two it should come up as OpenWrt. Continue to
+   [Section 5 — First boot](#5-first-boot).
+
+**If the upload is rejected, or it reboots back into stock / doesn't come up:** the
+easy path didn't take. Switch to the [reliable path](#4-reliable-path--serial-cable) —
+this is exactly why we said keep a serial cable ready.
+
+---
+
+## 4. Reliable path — serial cable
+
+This is the proven method. You'll connect a serial adapter, interrupt the bootloader,
+and write OpenWrt over the network with three commands.
+
+### 4.1 Connect the serial console
+- Get a **3.3V USB-to-TTL serial adapter** (FT232/CP2102/CH340 — a few dollars).
+  **3.3V, not 5V** — 5V can damage the board.
+- Open the AP and find header **J2**. Connect **GND↔GND, the AP's TX↔adapter RX,
+  AP's RX↔adapter TX**. Do **not** connect the voltage pin.
+- On your PC open a serial terminal at **115200 baud, 8N1** (e.g. `screen /dev/ttyUSB0 115200`,
+  or PuTTY on Windows). Power on the AP — you should see boot text.
+
+### 4.2 Set up a TFTP server on your PC
+The AP pulls the firmware from your PC over **TFTP**. Install one (`sudo apt install
+tftpd-hpa` on Linux, `brew install tftp-hpa` on macOS, or Tftpd64 on Windows) and put
+the downloaded images in its serving folder. Note your PC's IP.
+
+### 4.3 Download + verify the image
+Grab **`…-squashfs-factory.ubi`** and **`SHA256SUMS`** from the
+[release](https://github.com/ParkWardRR/ews377apv3-openwrt/releases):
+```
+sha256sum -c SHA256SUMS --ignore-missing   # must print: ...factory.ubi: OK
+```
+
+### 4.4 (Optional but nice) test-drive in RAM first
+This boots OpenWrt entirely in memory — **nothing is written**, so it's totally safe.
+Power on, press a key to stop the countdown and get the `=>` bootloader prompt, then:
+```
+setenv serverip <your-pc-ip> ; setenv ipaddr <an-unused-ip-on-your-lan>
+tftpboot 0x44000000 openwrt-…-initramfs-uImage.itb
+bootm 0x44000000
+```
+If it boots to `root@OpenWrt:/#`, everything's compatible. Power-cycle to return to
+stock, then do the real install below.
+
+### 4.5 Install OpenWrt (writes to flash)
+At the `=>` prompt:
+```
+setenv serverip <your-pc-ip> ; setenv ipaddr <an-unused-ip-on-your-lan> ; ping $serverip
 tftpboot 0x44000000 openwrt-…-squashfs-factory.ubi
-#   $filesize must read 0xe80000 (≈15.2 MB); if not, STOP
+```
+Check the line it prints — **`Bytes transferred = ... (e80000 hex)`**. If it's not
+`e80000`, stop and re-download.
+```
 nand device 0
 nand erase 0x1000000 0x6f00000
 nand write 0x44000000 0x1000000 0xe80000
 setenv active_fw 0 ; saveenv
 reset
 ```
-`nand write` skips the factory bad block; UBI tolerates bad blocks. Boots to
-`root@OpenWrt:~#`; LuCI/LAN at `192.168.1.1`.
+That's it. The AP reboots into OpenWrt. (Seeing `Skipping bad block` during the write
+is normal — the chip has one factory-marked bad spot and the tool handles it.)
 
-## Part 3 — OEM web updater (Method B, experimental / untested)
-From stock firmware, upload `…-web-ui-factory.bin` via the EnGenius web UI / LuCI
-firmware updater. It carries a flash script that erases slot 0 and writes OpenWrt.
-**If rejected or interrupted, recover with Method A** — only try with UART on hand,
-and please report the result so this can be promoted.
-
-## Part 4 — First boot & upgrades
-Set a root password; configure WiFi with WPA2/WPA3 (never leave an open SSID). Later
-upgrades stay on OpenWrt: `sysupgrade -n openwrt-…-squashfs-sysupgrade.bin`.
+Continue to [First boot](#5-first-boot).
 
 ---
 
-## Part 5 — Restore to stock EnGenius firmware
-**Route 1 — from your Part 1 backup (most reliable):**
+## 5. First boot
+
+- OpenWrt comes up with LAN on **`192.168.1.1`**. Plug your PC into the AP's LAN port,
+  set your PC to DHCP, and open **http://192.168.1.1** (LuCI web UI), or `ssh root@192.168.1.1`.
+- **Set a root password immediately** (LuCI → System → Administration, or `passwd`).
+  Until you do, SSH is open with no password.
+- **Configure Wi-Fi** (LuCI → Network → Wireless). Enable a radio, set an SSID, and
+  **use WPA2 or WPA3** — never leave an open network.
+- Your uplink is the **2.5 GbE** port (`lan`). It negotiates up to 2.5 Gbps against a
+  2.5G-capable switch; on a 1G switch it runs at 1G (normal).
+
+**Upgrading later:** download `…-squashfs-sysupgrade.bin` and use LuCI → System →
+Backup/Flash Firmware, or `sysupgrade -n …-squashfs-sysupgrade.bin`. Don't use the
+`factory.ubi` for upgrades — that's only for the first install from stock.
+
+---
+
+## 6. Go back to stock EnGenius firmware
+
+**Best (from your own backup, Section 2)** — over serial:
 ```
-setenv ipaddr <ap-ip> ; setenv serverip <tftp-ip> ; ping $serverip
-tftpboot 0x44000000 oem-rootfs.bin
+setenv serverip <your-pc-ip> ; setenv ipaddr <an-unused-ip> ; ping $serverip
+tftpboot 0x44000000 backup-rootfs.bin
 nand device 0
 nand erase 0x1000000 0x6f00000
-nand write 0x44000000 0x1000000 <size-of-oem-rootfs.bin-in-hex>
+nand write 0x44000000 0x1000000 <size-of-backup-rootfs.bin-in-hex>
 setenv active_fw 0 ; saveenv
 reset
 ```
-Restore `oem-wififw.bin` to `0x7f00000` if you overwrote it, and re-set any
-`ethaddr`/serial env fields that changed.
+(To get the size in hex: `printf '0x%x\n' $(stat -c%s backup-rootfs.bin)`.) If you also
+backed up `backup-wififw.bin`, write it to `0x7f00000` the same way. Restore any
+`ethaddr`/serial env values from your saved `printenv`.
 
-**Route 2 — official EnGenius `.bin`:** once stock boots (Route 1), re-apply any
-official EWS377AP v3 firmware through the normal web/cloud updater.
+**Or, from an official file:** once stock boots again, just reinstall any official
+EnGenius EWS377AP v3 firmware through the normal EnGenius updater.
 
-**Never write the ART partition or below `0x1000000`.** Because secure boot is
-unfused, u-boot + TFTP always recover the OS as long as ART and the bootloader are
-intact.
+---
 
-## Why it works
-1. The FIT kernel exposes a config named **`config@hk07`** — the OEM u-boot `bootipq`
-   selects the FIT config by board name and aborts otherwise.
-2. OpenWrt must live on **slot 0** (`rootfs` @`0x1000000`) — its root-mount targets
-   the partition labeled `rootfs` regardless of which slot booted the kernel.
+## 7. Troubleshooting & recovery
 
-Full engineering write-up: `PORT-STATUS-ews377ap-v3.md` on the `ews377ap-v3` branch of
-the [`openwrt-nss-edma`](https://github.com/ParkWardRR/openwrt-nss-edma) fork.
+| Symptom | What it means / fix |
+|---|---|
+| Web upload rejected or reboots to stock | Easy path didn't take → use the [serial path](#4-reliable-path--serial-cable). |
+| No serial output at all | Wrong baud (use 115200 8N1), TX/RX swapped, or wrong header. Try swapping TX/RX. |
+| `Bytes transferred` ≠ `e80000` | Bad/incomplete download — re-verify `SHA256SUMS`, re-fetch. |
+| Boots but no `root@OpenWrt` / kernel panic on mount | You likely wrote the wrong slot — OpenWrt must go to slot 0 (`0x1000000`). Re-do Section 4.5. |
+| Totally dead, only the `=>` prompt | Fine — TFTP the image back per Section 4.5, or restore stock (Section 6). |
+| Wi-Fi radios missing | Reboot once; first boot initializes calibration. |
+
+**You are only truly bricked if the ART/bootloader area is damaged — and these steps
+never touch it.** As long as you get a `=>` prompt over serial, you can always
+reinstall.
+
+---
+
+## Glossary (plain English)
+
+- **UART / serial console** — a text console on the board over a 3-wire cable; how you
+  talk to the bootloader. Needs a **3.3V USB-to-serial adapter**.
+- **u-boot / bootloader** — the tiny program that runs first and loads the OS. The
+  `=>` prompt is its command line. `bootipq` is its "boot the firmware" command.
+- **TFTP** — a dead-simple file server; the bootloader uses it to pull the image from
+  your PC.
+- **slot** — this AP has two firmware "slots" (A/B). OpenWrt must live in **slot 0**
+  (`0x1000000`); the vendor updater uses the same slot.
+- **UBI / `factory.ubi`** — the flash filesystem format OpenWrt is packaged in.
+- **ART** — a small factory partition holding your Wi-Fi calibration and MAC address.
+  **Unique per device; never erase it** — that's the one real way to brick.
+- **brick** — a device that won't boot and can't be recovered. Following this guide
+  (backups + never touching ART) keeps that from happening.
+
+## Appendix — partition map & why it works
+
+| Region | Offset | Size | Note |
+|---|---|---|---|
+| bootloader / config / **ART** | `0x0`–`0x1000000` | 16 MiB | **never touch** |
+| `rootfs` (slot 0) | `0x1000000` | 111 MiB | ← OpenWrt goes here |
+| `0:wififw` | `0x7f00000` | 9 MiB | leave as-is |
+| `rootfs_1` (slot 1) | `0x8800000` | 111 MiB | vendor A/B slot (unused by OpenWrt) |
+| `0:wififw_1` | `0xf700000` | 9 MiB | leave as-is |
+
+Two device-specific details make OpenWrt boot on the stock bootloader: the FIT kernel
+image must expose a config named **`config@hk07`** (the bootloader picks the config by
+board name), and OpenWrt must be installed to **slot 0** (its root-mount always uses
+the `rootfs`-labeled partition). Both are baked into these images — you don't have to
+do anything. Full write-up: `PORT-STATUS-ews377ap-v3.md` on the
+[`openwrt-nss-edma`](https://github.com/ParkWardRR/openwrt-nss-edma) `ews377ap-v3` branch.

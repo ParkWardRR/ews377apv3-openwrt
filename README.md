@@ -22,10 +22,19 @@ Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews37
 | `…-squashfs-factory.ubi` | UART + u-boot `nand write` to slot 0 | ✅ **hardware-proven** |
 | `…-initramfs-uImage.itb` | RAM boot (dry-run / recovery, nothing written) | ✅ proven |
 | `…-squashfs-sysupgrade.bin` | upgrades once on OpenWrt | standard |
-| `…-web-ui-factory.bin` | OEM web/LuCI updater (one-click) | ⚠️ community-untested |
-| `…-squashfs-qsdk-factory.itb` | OEM CLI updater | ⚠️ community-untested |
+| `…-web-ui-factory.bin` | OEM web/LuCI updater (one-click) | 🧪 see status ↓ |
+| `…-squashfs-qsdk-factory.itb` | OEM CLI updater | 🧪 see status ↓ |
 
-**Install & back-to-stock guide →** [docs/install-and-restore.md](docs/install-and-restore.md)**.**
+<!-- METHOD-B-STATUS: pending -->
+> 🧪 **One-click web-upload status: NOT YET CONFIRMED on hardware.** The
+> `web-ui-factory.bin` / `qsdk-factory.itb` images are built and match the vendor
+> format, but haven't been validated on a real unit yet — treat them as experimental
+> and only use them with a serial cable ready to recover. **The UART/u-boot install
+> (`factory.ubi`) is fully proven.** (This one line flips to ✅/❌ once tested.)
+
+**New here?** The **[install & back-to-stock guide](docs/install-and-restore.md)** is
+written for both first-timers and power users — pick the easy (web) or reliable
+(serial) path, with every command and what-you-should-see spelled out.
 
 ## ⚠️ Before you flash
 - **You can brick your AP.** Unofficial; overwrites the OEM firmware (single-slot).
