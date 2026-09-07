@@ -84,6 +84,25 @@ Image artifacts the WAX218 recipe emits (names track the release; `25.12.2` show
 `-squashfs-sysupgrade.bin`, `-web-ui-factory.fit`. The EWS377 build deliberately mirrors
 these.
 
+### What `factory.ubi` actually contains (so you know what `ubiformat` lays down)
+
+Extracting the mainline `25.12.2` `netgear_wax218-squashfs-factory.ubi` (with
+`ubireader`, on the Mac mini) shows a standard **ubinize** image — the exact structure
+the EWS377 image must match:
+
+| UBI volume | id | type | size | role |
+|---|---|---|---|---|
+| `kernel` | 0 | dynamic | 43 PEBs (~5.4 MB) | the **FIT** (kernel + DTB), carries `config@hk07` (verified) |
+| `rootfs` | 1 | dynamic | 62 PEBs | squashfs; booted as `ubi.block=0,rootfs` → `/dev/ubiblock0_1` |
+| `rootfs_data` | 2 | dynamic, **autoresize** | reserved 9 PEBs | the writable overlay; grows to fill the NAND slot on first boot |
+
+Geometry: PEB `0x20000` (128 KiB), LEB `126976`, min-I/O `2048` — i.e. `BLOCKSIZE :=
+128k`, `PAGESIZE := 2048`. `ubiformat /dev/mtdN -f factory.ubi` writes this whole image
+to the `rootfs` NAND slot; u-boot's `bootipq` then loads the `kernel` volume's FIT
+(picking `config@hk07`) and the kernel mounts vol 1 as root with vol 2 overlaid. The
+EWS377 factory image is byte-for-byte the same shape, differing only in the DTB inside
+the `kernel` FIT and the squashfs contents.
+
 ## How that maps onto the EWS377
 
 The SSH `ubiformat` route is directly portable — the EWS377 stock firmware is itself a
