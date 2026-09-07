@@ -38,7 +38,7 @@ Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews37
 > block). **The UART/u-boot install (`factory.ubi`) remains the only path proven to
 > fully persist.** Full writeup: [`reference/method-b-findings.md`](reference/method-b-findings.md).
 > **Help wanted:** if you have a second unit, see
-> [the tracking issue](https://github.com/ParkWardRR/ews377apv3-openwrt/issues) — this
+> [the tracking issue](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1) — this
 > could be the full no-UART install path once confirmed on healthier hardware.
 
 **New here?** The **[install & back-to-stock guide](docs/install-and-restore.md)** is

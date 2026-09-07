@@ -5,8 +5,7 @@ HTTP mechanism is now proven to work end-to-end** — a real, reusable technique
 full persistence validation is currently blocked on the one test unit available, by a
 hardware issue unrelated to the mechanism or image format. Documented here in detail so
 someone with a second unit can pick up exactly where this left off. See
-[GitHub issue tracking community validation](https://github.com/ParkWardRR/ews377apv3-openwrt/issues)
-(link once filed).
+[GitHub issue #1 tracking community validation](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
 
 ## 1. The original "argument validation" rejection — resolved
 

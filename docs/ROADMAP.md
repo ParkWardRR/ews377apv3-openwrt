@@ -158,7 +158,7 @@ must state which row an artifact is, not just link the file.
       the resulting boot has not yet persisted on the one unit available, due to a
       unit-specific bad NAND block, not the mechanism or image. Needs a different unit
       to isolate unit-specific hardware from anything systemic. Tracked publicly —
-      **open, community help wanted** (see the repo's Issues).
+      **open, community help wanted**: [issue #1](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
 - [ ] Hardware-test SSH + `ubiformat` (already documented) on at least one unit before
       calling it proven — currently mirrored from WAX218 but untested on any EnGenius SKU.
       **Still open — needs hardware.**
@@ -196,7 +196,7 @@ hasn't yet persisted on the one unit available — a reproducible bad NAND block
 unit's spare slot, confirmed independent of image format. What's left is **not**
 reverse-engineering, it's **community validation**: someone with a second unit
 re-heading the current release image and confirming (or refuting) a clean, persistent
-boot. Tracked as a GitHub issue.
+boot. Tracked as [issue #1](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
 
 **Phase 3 — Extend the device recipe: shared base DTS, one profile per SKU.** §4
 confirmed the DTS *properties* are identical across all three, so this is recipe-only —
