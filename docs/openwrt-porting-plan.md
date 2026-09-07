@@ -1,5 +1,9 @@
 # OpenWrt (NSS-EDMA) porting plan — EWS377AP v3 (`ap-hk07`, IPQ8072A)
 
+> **STATUS (2026-09-06): ✅ COMPLETE — validated on hardware.** Persistent NAND boot achieved; the two
+> unlockers were the FIT config name `config@hk07` and installing to slot 0. See the repo README and
+> [install-and-restore.md](install-and-restore.md). This plan is kept as the engineering record.
+
 End-to-end plan to bring **OpenWrt with Qualcomm NSS offload** (the NSS-EDMA fork) to the EnGenius
 EWS377AP v3. The board is brought up first, then NSS acceleration is enabled and validated on top of
 the same port. Ordered so the **go/no-go decision (secure boot)** and the **non-destructive proof

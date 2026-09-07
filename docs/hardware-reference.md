@@ -1,7 +1,10 @@
 # Hardware reference — EWS377AP v3 (`ap-hk07`)
 
-Consolidated facts about the board, boot chain, and flash layout. Sources: live analysis of the
-fleet + de-obfuscated stock firmware. Per-device secrets (real MAC/serial) are intentionally omitted.
+Consolidated facts about the board, boot chain, and flash layout. Sources: live analysis +
+de-obfuscated stock firmware. Per-device secrets (real MAC/serial) are intentionally omitted.
+
+> **STATUS: verified on hardware (2026-09-06).** MTD map, `bootipq`/`active_fw` boot chain, and env
+> below are confirmed live. OpenWrt installs to slot 0 (`rootfs` @0x1000000).
 
 ## SoC / radio
 

@@ -1,79 +1,86 @@
-# EWS377AP v3 → OpenWrt (NSS-accelerated)
+# EnGenius EWS377AP v3 → OpenWrt
 
-Porting the **EnGenius EWS377AP v3** (Qualcomm IPQ8072A, board `ap-hk07`) to **OpenWrt with Qualcomm
-NSS hardware offload**, using the community NSS-EDMA tree (NSS offload layered on the *upstream*
-qca_edma/qca_ppe stack). Goal: OpenWrt's flexibility while recovering most of the OEM QSDK forwarding
-throughput.
+The canonical home for running **mainline-style OpenWrt** on the EnGenius
+**EWS377AP v3** (Qualcomm **IPQ8072A**, board `ap-hk07`) — a 4×4 Wi-Fi 6 access
+point with a 2.5 GbE uplink. Built on the community **NSS-EDMA** OpenWrt tree
+(Qualcomm NSS hardware offload on top of the upstream `qca_edma`/`qca_ppe` stack),
+kernel 6.18.
 
-> **Status:** active development, pre-flash. OEM device tree + WiFi board data already extracted
-> offline; GPIO/LED/PHY values confirmed. Remaining unknowns need the running unit / UART (ETA ~2
-> days). Every step can brick a unit until proven on a sacrificial AP.
+> ## ✅ Status: validated on hardware
+> OpenWrt boots and runs **persistently from NAND** on a real unit: `bootipq` →
+> FIT `config@hk07` → kernel → UBI root mount → squashfs + `rootfs_data` overlay →
+> shell, surviving real reboots. **Ethernet**, **both Wi-Fi radios (WPA2)**, and
+> **config persistence** confirmed. Secure boot is **not fused** (custom images
+> boot). Unofficial / community; prerelease.
 
-## Why NSS (and not plain mainline)
+## ⬇️ Downloads
 
-Stock mainline OpenWrt on IPQ807x runs the Ethernet/PPE path on the host CPU with **no NSS offload**,
-so forwarding throughput sits well below the OEM. The **NSS-EDMA** fork drives the Qualcomm NSS block
-(NAT, PPPoE, SQM, multicast, bridge, ath11k Wi-Fi offload) while keeping an upstream-oriented
-EDMA/PPE driver stack — materially closer to the QSDK performance model. That is the target here.
+Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** (tag `v0.1`).
 
-> The fork is validated on **Xiaomi AX3600 / IPQ8071A, not the EWS377** — its published NSS numbers
-> are AX3600 figures, not an EWS377 benchmark. The EWS377's IPQ8072A part is close enough to make NSS
-> a plausible target, but every EWS377-specific piece (NSS bring-up, EDMA binding to this board's
-> Ethernet, ECM offload engaging, ath11k offload) is validated independently — see the porting plan.
+| File | Use | Status |
+| --- | --- | --- |
+| `…-squashfs-factory.ubi` | UART + u-boot `nand write` to slot 0 | ✅ **hardware-proven** |
+| `…-initramfs-uImage.itb` | RAM boot (dry-run / recovery, nothing written) | ✅ proven |
+| `…-squashfs-sysupgrade.bin` | upgrades once on OpenWrt | standard |
+| `…-web-ui-factory.bin` | OEM web/LuCI updater (one-click) | ⚠️ community-untested |
+| `…-squashfs-qsdk-factory.itb` | OEM CLI updater | ⚠️ community-untested |
 
-The OEM stock firmware remains only as the **throughput baseline to measure against**, not a target
-to build.
+**Install & back-to-stock guide →** [docs/install-and-restore.md](docs/install-and-restore.md)**.**
 
-## Where the work lives
+## ⚠️ Before you flash
+- **You can brick your AP.** Unofficial; overwrites the OEM firmware (single-slot).
+- **Only the UART/u-boot install is hardware-proven.** The web-upload `.bin` is
+  experimental — only try it with UART recovery on hand.
+- **Back up your own NAND first** (your MAC + radio calibration are unique).
+- **Never write the ART partition or the bootloader region (`0x0`–`0x1000000`).**
+- Verify `SHA256SUMS` before flashing.
 
-- **Fork:** `github.com/ParkWardRR/openwrt-nss-edma` (of `JuliusBairaktaris/openwrt-nss-edma`)
-- **Branch:** `ews377ap-v3`
-- **Scaffolded:** `ipq8072-engenius-ews377ap-v3.dts`, the `Device/engenius_ews377ap-v3` image recipe
-  (FitImage/UbiFit + stubbed Senao factory image), and the `ipq-wifi-engenius_ews377ap-v3` board-data
-  package. Status + TODOs: `PORT-STATUS-ews377ap-v3.md` in the fork.
-
-## Confirmed from OEM firmware (offline)
-
-Extracted `fdt@hk07` (the firmware's **default config**) from stock EWS377-FIT 1.1.30 — model
-*"Qualcomm IPQ807x/AP-HK07"*, i.e. exactly this board:
-
-- **LEDs:** RGB status LED, active-high — GPIO 54 (R) / 55 (G) / 56 (B)
-- **Reset:** GPIO 52, active-low
-- **Ethernet:** 2.5G uplink PHY (QCA8081) at MDIO addr 28; internal gigabit PHYs at 0–4; PHY reset on GPIO 43/44
-- **Partitions:** SMEM-defined (`qcom,smem-part` auto-reads them)
-- **WiFi:** QSDK `WLAN.HK.2.5.r4-00745`; board data extracted (default `bdwlan.b210`, ECW230v3 `bdwlan.b290`)
-
-Artifacts in [reference/](reference/) (decompiled OEM DTS + board data + notes).
-
-## Key enabler
-
-Stock firmware's FIT sub-images are named `openwrt-ipq-ipq807x-ubi-root.img` — **EnGenius stock is a
-QSDK OpenWrt build**, so the device tree, board files, and partition map already exist and are
-harvestable (done, above). The gap to the NSS-EDMA tree is translating QSDK downstream bindings
-(NSS/edma/ess-switch) to the fork's upstream ones.
+## The two board-specific fixes that made it boot
+Generic `qualcommax`/`ipq807x` OpenWrt needed exactly two adjustments for the stock
+EnGenius u-boot:
+1. **FIT config named `config@hk07`** — OEM `bootipq` selects the FIT config by
+   board name and aborts ("Config not availabale") otherwise
+   (`DEVICE_DTS_CONFIG := config@hk07`, like the sibling ap-hk07 board `netgear_wax218`).
+2. **Install to slot 0** — OpenWrt's root-mount always targets the SMEM/DTS
+   partition labeled `rootfs` (slot 0, `0x1000000`), regardless of which A/B slot the
+   bootloader loaded from — so OpenWrt must live on slot 0.
 
 ## Hardware at a glance
+- **SoC:** Qualcomm IPQ8072A (quad Cortex-A53), 512 MB RAM, 256 MB NAND; same
+  silicon family as ECW230v3 / EWS377-FIT.
+- **Wi-Fi:** 4×4 802.11ax dual-band (ath11k), caldata from ART.
+- **Ethernet:** single 2.5 GbE `lan` uplink (QCA8081 @ MDIO 28, `2500base-x` via
+  uniphy2); `eth0` is the internal CPU conduit.
+- **LEDs:** RGB status on GPIO 54/55/56. **Reset:** GPIO 52. **UART:** header **J2**, 115200 8N1.
+- **Boot:** QCA u-boot 2.0.0, `bootcmd=bootipq`, dual A/B slots (`active_fw`).
 
-- **SoC:** Qualcomm IPQ8072A, 4×4 802.11ax — same board as ECW230v3 / EWS377-FIT
-- **Board:** `ap-hk07` (Qualcomm HK reference derivative)
-- **Boot:** u-boot, `bootcmd=bootipq`, dual A/B firmware slots
-- **UART:** header **J2**, 115200 8N1 (see [docs/uart-extraction-plan.md](docs/uart-extraction-plan.md))
-- **Flash (MTD):** DEVCFG=mtd3, APPSBLENV=mtd7, APPSBL=mtd8, cert=mtd9, **ART=mtd11**, rootfs slots mtd12/mtd14
-
-Full detail: [docs/hardware-reference.md](docs/hardware-reference.md)
+## Source & related
+- **Source / build:** fork branch `ews377ap-v3` of
+  [`openwrt-nss-edma`](https://github.com/ParkWardRR/openwrt-nss-edma) — full
+  engineering write-up in `PORT-STATUS-ews377ap-v3.md`.
+- **Flashing tool + guide mirror:** [`pelegrun-ap-hk07-firmware-tools`](https://github.com/ParkWardRR/pelegrun-ap-hk07-firmware-tools).
+- **EnGenius background (controllers, cross-flashing, firmware format):** [`engenius-field-guide`](https://github.com/ParkWardRR/engenius-field-guide).
 
 ## Documents
-
 | File | Purpose |
-|---|---|
-| [docs/openwrt-porting-plan.md](docs/openwrt-porting-plan.md) | End-to-end NSS-EDMA port plan: extract → bring-up → DTS → WiFi → NSS validation → install |
-| [docs/uart-extraction-plan.md](docs/uart-extraction-plan.md) | What to pull off the live unit once UART is connected |
-| [docs/hardware-reference.md](docs/hardware-reference.md) | MTD map, boot chain, u-boot env, serial/MAC facts, recovery |
-| [reference/](reference/) | Extracted OEM device tree + WiFi board data |
+| --- | --- |
+| [docs/install-and-restore.md](docs/install-and-restore.md) | Install OpenWrt + restore to stock (proven + experimental paths) |
+| [docs/hardware-reference.md](docs/hardware-reference.md) | MTD map, boot chain, u-boot env, recovery |
+| [docs/openwrt-porting-plan.md](docs/openwrt-porting-plan.md) | End-to-end port plan (with outcomes) |
+| [docs/uart-extraction-plan.md](docs/uart-extraction-plan.md) | UART data extraction method |
+| [docs/research-notes.md](docs/research-notes.md) | Community findings / secure-boot priors |
+| [reference/](reference/) | Decompiled OEM device trees + Wi-Fi board data |
 
 ## Safety / recovery ground rules
+- **Back up before touching flash:** the OS slot(s), env, and especially **ART**
+  (calibration + MAC; corruption = real brick) — keep the dumps off-device.
+- Keep a byte-exact OEM backup so you can always restore stock.
+- Never hand-rebuild a partial u-boot env — a *valid-but-incomplete* env bricks worse
+  than an erased one.
+- Because secure boot is unfused, UART + TFTP always recover the OS as long as ART and
+  the bootloader are intact.
 
-- **Back up before touching flash:** mtd7 (env), mtd8 (APPSBL), **mtd11 (ART — calibration + MAC; corruption = real brick)**, plus a pristine stock `.bin`.
-- Never hand-rebuild a partial u-boot env — a *valid-but-incomplete* env is worse than an erased one.
-- Keep one OEM slot intact until OpenWrt sysupgrade + failsafe are proven.
-- Do all work on a **sacrificial unit** — these APs are a deployed fleet (`*.alpina.casa`).
+## Scope
+Unofficial community work for interoperability and self-hosting on hardware you own.
+"EnGenius"/"Senao" are trademarks of their owners; no affiliation or endorsement. No
+vendor firmware is redistributed here. No warranty — use at your own risk.

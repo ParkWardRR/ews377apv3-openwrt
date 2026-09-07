@@ -1,5 +1,8 @@
 # UART extraction plan — EWS377AP v3
 
+> **STATUS: done (2026-09-06).** UART connected (J2, 115200 8N1); DTB, board data, ART/caldata, the
+> partition table and env were all extracted, and the port is validated. Kept as the method reference.
+
 What to grab off a live unit the moment you have UART hooked up. Goal: pull the full hardware
 description (DTB, WiFi board data, per-device caldata, GPIO/LED/switch topology) so the OpenWrt
 device tree and board files can be written from real data instead of guesses.
