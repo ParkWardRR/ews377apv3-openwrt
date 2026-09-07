@@ -33,8 +33,9 @@ Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews37
 > (`factory.ubi`) is fully proven.** (This one line flips to ✅/❌ once tested.)
 
 **New here?** The **[install & back-to-stock guide](docs/install-and-restore.md)** is
-written for both first-timers and power users — pick the easy (web) or reliable
-(serial) path, with every command and what-you-should-see spelled out.
+written for both first-timers and power users — pick the reliable (serial), SSH
+(`ubiformat`, no cable — borrowed from the WAX218), or easy (web) path, with every
+command and what-you-should-see spelled out.
 
 ## ⚠️ Before you flash
 - **You can brick your AP.** Unofficial; overwrites the OEM firmware (single-slot).
@@ -49,14 +50,20 @@ Generic `qualcommax`/`ipq807x` OpenWrt needed exactly two adjustments for the st
 EnGenius u-boot:
 1. **FIT config named `config@hk07`** — OEM `bootipq` selects the FIT config by
    board name and aborts ("Config not availabale") otherwise
-   (`DEVICE_DTS_CONFIG := config@hk07`, like the sibling ap-hk07 board `netgear_wax218`).
+   (`DEVICE_DTS_CONFIG := config@hk07`). This is **not guesswork**: the officially
+   supported ap-hk07 sibling `netgear_wax218` ships the *identical* `config@hk07` in its
+   mainline image (verified by string-inspecting the upstream `25.12.2` build) — same
+   reference board, same bootloader contract. See
+   [docs/wax218-equivalence.md](docs/wax218-equivalence.md).
 2. **Install to slot 0** — OpenWrt's root-mount always targets the SMEM/DTS
    partition labeled `rootfs` (slot 0, `0x1000000`), regardless of which A/B slot the
    bootloader loaded from — so OpenWrt must live on slot 0.
 
 ## Hardware at a glance
-- **SoC:** Qualcomm IPQ8072A (quad Cortex-A53), 512 MB RAM, 256 MB NAND; same
-  silicon family as ECW230v3 / EWS377-FIT.
+- **SoC:** Qualcomm IPQ8072A (quad Cortex-A53), 1 GiB RAM (confirmed live; some
+  variants report 512 MB), 256 MB NAND. **Same `ap-hk07` reference board** as the
+  ECW230v3, EWS377-FIT, and the **officially-supported NETGEAR WAX218 v1** — see
+  [docs/wax218-equivalence.md](docs/wax218-equivalence.md).
 - **Wi-Fi:** 4×4 802.11ax dual-band (ath11k), caldata from ART.
 - **Ethernet:** single 2.5 GbE `lan` uplink (QCA8081 @ MDIO 28, `2500base-x` via
   uniphy2); `eth0` is the internal CPU conduit.
@@ -73,7 +80,8 @@ EnGenius u-boot:
 ## Documents
 | File | Purpose |
 | --- | --- |
-| [docs/install-and-restore.md](docs/install-and-restore.md) | Install OpenWrt + restore to stock (proven + experimental paths) |
+| [docs/install-and-restore.md](docs/install-and-restore.md) | Install OpenWrt + restore to stock (serial / SSH / web paths) |
+| [docs/wax218-equivalence.md](docs/wax218-equivalence.md) | Same board as the official OpenWrt NETGEAR WAX218 — shared/differing traits + borrowed SSH install method |
 | [docs/hardware-reference.md](docs/hardware-reference.md) | MTD map, boot chain, u-boot env, recovery |
 | [docs/openwrt-porting-plan.md](docs/openwrt-porting-plan.md) | End-to-end port plan (with outcomes) |
 | [docs/uart-extraction-plan.md](docs/uart-extraction-plan.md) | UART data extraction method |

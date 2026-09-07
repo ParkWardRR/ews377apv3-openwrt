@@ -130,12 +130,17 @@ Stock uses QSDK `qca-wifi`; mainline uses **ath11k**, which looks up board data 
 
 ## Phase 5 — Image packaging + install path
 
-Two viable install routes; pick per how secure boot landed:
+Three viable install routes; pick per how secure boot landed:
 
+- **u-boot route (proven):** interrupt `bootipq`, `tftpboot` the factory UBI, `nand erase`/`nand write`
+  it to slot 0 (`0x1000000`), `setenv active_fw 0`. Fully hardware-proven — see install-and-restore.md §4.
+- **SSH `ubiformat` route (WAX218 method):** from stock, over the EnGenius root exec channel (port 8822),
+  `fw_setenv active_fw 1` → `ubiformat /dev/mtd<0x1000000>` the factory UBI → `fw_setenv active_fw 0`.
+  This is exactly how OpenWrt installs the sibling `netgear_wax218`; every prerequisite is present on the
+  EWS377 (verify on hardware). No serial needed. See [wax218-equivalence.md](wax218-equivalence.md).
 - **Senao header route:** OpenWrt `firmware-utils` already ships `mksenaofw`. Build a Senao-wrapped
-  sysupgrade image (`product_id` matching the target slot) and flash via the OEM updater / one A/B slot.
-  The OEM's userspace `check_senao_image_header.sh` only gates on vendor_id+product_id.
-- **u-boot route:** after the initramfs boots, write OpenWrt sysupgrade directly to a slot from u-boot.
+  sysupgrade image (`product_id 0x011a`) and flash via the OEM web updater. The OEM's userspace
+  `check_senao_image_header.sh` only gates on vendor_id+product_id.
 
 **Deliverable:** repeatable flash + a documented rollback to stock.
 
@@ -213,6 +218,14 @@ secure boot is open and a usable BDF is obtainable.
 
 ## Biggest shortcut
 
-Before writing `ap-hk07.dts`, check the current OpenWrt tree for an **already-supported IPQ8072A 4×4
-sibling** (EnGenius / Edgecore / Cambium share reference designs). An existing `.dts` + working
-`board-2.bin` collapses most of Phases 3–4 into copy-and-adjust.
+The already-supported IPQ8072A 4×4 sibling exists and is a **confirmed same-board match**: the
+**NETGEAR WAX218 v1** (`qualcommax/ipq807x`, mainline since 23.05). It is the same `ap-hk07` reference
+design — its mainline image ships the identical FIT `config@hk07` (verified by inspecting the upstream
+`25.12.2` build), and it uses the same `qcom,smem-part` / `ubi.block=0,rootfs` / ath11k caldata-variant
+mechanisms this port relies on. Diff the EWS377 device block against mainline `netgear_wax218`
+(`ipq8072-wax218.dts` + its `image/Makefile` `Device/` block, `DEVICE_DTS_CONFIG := config@hk07`,
+`SOC := ipq8072`, `BLOCKSIZE := 128k`, `PAGESIZE := 2048`) — the only intended deltas are the LEDs
+(RGB GPIO 54/55/56 vs the WAX218's 74HC164 shift register), the Wi-Fi package (`bdwlan.b290` vs
+`ipq-wifi-netgear_wax218`), and the Senao web-upload wrapper. Full mapping:
+[wax218-equivalence.md](wax218-equivalence.md). This collapses most of Phases 3–5 into copy-and-adjust,
+and the WAX218's SSH `ubiformat` procedure is a ready-made from-stock install path.

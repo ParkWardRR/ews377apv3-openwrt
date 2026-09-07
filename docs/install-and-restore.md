@@ -1,9 +1,10 @@
 # Install OpenWrt on the EnGenius EWS377AP v3 — the friendly guide
 
 This walks you all the way from stock EnGenius firmware to a working **OpenWrt**
-router, and back again if you change your mind. There are two ways to do it — an
-**easy way** (no tools, if it pans out) and a **reliable way** (a serial cable, always
-works). Pick the one that fits you.
+router, and back again if you change your mind. There are three ways to do it — a
+**reliable way** (a serial cable, always works), an **SSH way** (no cable, borrowed from
+the officially-supported sibling WAX218), and an **easy way** (one web upload, if it pans
+out). Pick the one that fits you.
 
 New to flashing? Don't worry — every step says exactly what to type and what you
 should see. A short [glossary](#glossary-plain-english) at the end explains the jargon
@@ -35,18 +36,21 @@ should see. A short [glossary](#glossary-plain-english) at the end explains the 
 > "✅ CONFIRMED", treat the easy path as experimental and **only use it if you also
 > have a serial cable ready** to recover. The reliable path below is fully proven.
 
-| | 🟢 Reliable path (recommended) | 🟡 Easy path |
-|---|---|---|
-| **How** | Serial cable + bootloader commands | Upload one file in the vendor web page |
-| **Tools needed** | A USB-to-serial (UART) adapter, ~$10, and opening the case | Nothing — just a browser |
-| **Difficulty** | Moderate (copy-paste commands) | Easy |
-| **Proven?** | ✅ Yes, on real hardware | 🧪 See the status box above |
-| **If it goes wrong** | You're already on serial — recover in place | You'll *need* a serial cable to recover |
-| **Go to** | [Section 4](#4-reliable-path--serial-cable) | [Section 3](#3-easy-path--web-upload) |
+| | 🟢 Reliable path (recommended) | 🔵 SSH path (no serial) | 🟡 Easy path |
+|---|---|---|---|
+| **How** | Serial cable + bootloader commands | `ubiformat` over stock SSH | Upload one file in the vendor web page |
+| **Tools needed** | A USB-to-serial (UART) adapter, ~$10, and opening the case | An SSH client; stock firmware reachable | Nothing — just a browser |
+| **Difficulty** | Moderate (copy-paste commands) | Moderate (copy-paste commands) | Easy |
+| **Proven?** | ✅ Yes, on real hardware | 🧪 Proven on the sibling WAX218; not yet on EWS377 | 🧪 See the status box above |
+| **If it goes wrong** | You're already on serial — recover in place | You'll *need* a serial cable to recover | You'll *need* a serial cable to recover |
+| **Go to** | [Section 4](#4-reliable-path--serial-cable) | [Section 3b](#3b-ssh-path--from-stock-no-serial) | [Section 3](#3-easy-path--web-upload) |
 
 **Our honest advice:** if you own a USB-serial adapter (or can borrow one), use the
-reliable path — it can't strand you. If you have no adapter and the status box above
-says the easy path is confirmed, the easy path is genuinely one click.
+reliable path — it can't strand you. If you have no adapter: the **SSH path** (mirrored
+from the officially-supported NETGEAR WAX218, the same `ap-hk07` board — see
+[wax218-equivalence.md](wax218-equivalence.md)) is more predictable than the blind
+web-upload, but neither is proven on the EWS377 yet, so keep a serial cable within reach
+for both.
 
 ---
 
@@ -95,6 +99,53 @@ get stock back byte-for-byte (Section 6).
 **If the upload is rejected, or it reboots back into stock / doesn't come up:** the
 easy path didn't take. Switch to the [reliable path](#4-reliable-path--serial-cable) —
 this is exactly why we said keep a serial cable ready.
+
+---
+
+## 3b. SSH path — from stock, no serial
+
+This is the method OpenWrt uses for the sibling **NETGEAR WAX218** (the same `ap-hk07`
+board — [details](wax218-equivalence.md)): write the OpenWrt image straight to NAND with
+`ubiformat`, over the stock firmware's SSH, no cable and no case-opening. Everything it
+needs is confirmed present on the EWS377 (a root SSH exec channel on **port 8822**,
+`fw_setenv`, and the OpenWrt slot at `0x01000000`) — but **it has not yet been run
+end-to-end on a real EWS377**, so treat it as experimental and keep a serial cable handy.
+
+**Prereqs:** the AP is on stock EnGenius firmware, reachable on the network, **not**
+ezMaster-managed (managed units disable SSH), and you know its admin password (`admin` on
+a factory-reset unit). Download and verify `…-squashfs-factory.ubi` (Section 4.3).
+
+```
+AP=<ap-ip>
+SSHOPTS="-p 8822 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa"
+
+# 0. VERIFY the target partition on YOUR unit. It MUST be the mtd at offset 0x01000000.
+#    Do not assume the number below — read it here and use what you see.
+ssh $SSHOPTS root@$AP 'cat /proc/mtd'          # note the mtdN whose offset is 0x01000000
+
+# 1. Safety: aim the NEXT boot at the other slot, so a power cut mid-write still leaves
+#    an intact system to boot.
+ssh $SSHOPTS root@$AP 'fw_setenv active_fw 1'
+
+# 2. Copy the image into the AP's RAM.
+scp -O -P 8822 -o HostKeyAlgorithms=+ssh-rsa \
+    openwrt-…-ews377ap-v3-squashfs-factory.ubi root@$AP:/tmp/openwrt.ubi
+
+# 3. Write it. Replace mtd12 with the device you verified in step 0.
+ssh $SSHOPTS root@$AP 'ubiformat /dev/mtd12 -f /tmp/openwrt.ubi -y'
+
+# 4. Select slot 0 (where OpenWrt must live) and reboot into it.
+ssh $SSHOPTS root@$AP 'fw_setenv active_fw 0 && reboot'
+```
+
+> ⛔ **Never `ubiformat` a partition below `0x01000000`** — that region holds ART (your
+> Wi-Fi calibration + MAC) and the bootloader. Writing it is the one real way to brick.
+> If step 0 doesn't show a partition at exactly `0x01000000`, **stop** and use the serial
+> path instead.
+
+**If `ubiformat` is missing** on your stock build, or SSH is closed (managed unit): this
+path isn't available — use the [reliable serial path](#4-reliable-path--serial-cable).
+After reboot, continue to [First boot](#5-first-boot).
 
 ---
 
@@ -199,6 +250,8 @@ EnGenius EWS377AP v3 firmware through the normal EnGenius updater.
 | Symptom | What it means / fix |
 |---|---|
 | Web upload rejected or reboots to stock | Easy path didn't take → use the [serial path](#4-reliable-path--serial-cable). |
+| `/proc/mtd` shows no partition at `0x01000000`, or `ubiformat` missing | SSH path not usable on your unit → use the [serial path](#4-reliable-path--serial-cable). |
+| SSH refused / no port 8822 | ezMaster-managed (SSH disabled) or non-default firmware → unmanage it, or use serial. |
 | No serial output at all | Wrong baud (use 115200 8N1), TX/RX swapped, or wrong header. Try swapping TX/RX. |
 | `Bytes transferred` ≠ `e80000` | Bad/incomplete download — re-verify `SHA256SUMS`, re-fetch. |
 | Boots but no `root@OpenWrt` / kernel panic on mount | You likely wrote the wrong slot — OpenWrt must go to slot 0 (`0x1000000`). Re-do Section 4.5. |

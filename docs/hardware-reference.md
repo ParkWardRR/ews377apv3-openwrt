@@ -16,7 +16,11 @@ de-obfuscated stock firmware. Per-device secrets (real MAC/serial) are intention
   variants exist. Harmless for the DTS: qualcommax reads DRAM size from the bootloader at runtime.
 - **NAND:** 256 MiB (OS UBI region starts at NAND `0x01000000`)
 - **machid:** `0x8010006` (arch_number); u-boot `2.0.0`, `bootcmd=bootipq`, `bootdelay=5`
-- **Board name:** `ap-hk07` (Qualcomm reference-design designator; also the OpenWrt board id used downstream)
+- **Board name:** `ap-hk07` (Qualcomm reference-design designator; also the OpenWrt board id used downstream).
+  The **NETGEAR WAX218 v1** is the same `ap-hk07` board and is **officially supported in mainline
+  OpenWrt** (`qualcommax/ipq807x`) — its mainline image carries the identical FIT `config@hk07` (verified).
+  It is the upstream reference for the DTS, image recipe, and the SSH `ubiformat` install; see
+  [wax218-equivalence.md](wax218-equivalence.md).
 - **Serial console:** `ttyMSM0` (blsp1_uart5), 115200n8 (OEM bootargs `console=ttyMSM0,115200,n8`)
 - **Firmware IDs:** vendor_id 257 (`0x0101`); product_id — EWS377AP v3 = 282 (`0x011a`),
   EWS377-FIT = 300, ECW230v3 = 284 (all the same silicon; product_id is the only differentiator the
