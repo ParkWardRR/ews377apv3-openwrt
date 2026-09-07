@@ -29,19 +29,23 @@ should see. A short [glossary](#glossary-plain-english) at the end explains the 
 
 ## 1. Pick your path
 
-<!-- METHOD-B-STATUS: pending -->
-> 🧪 **Easy path (web upload) status: NOT YET CONFIRMED ON HARDWARE.**
-> The one-click web-upload image is built and matches the vendor's format, but at the
-> time of writing it hasn't been proven on a real unit yet. Until this line says
-> "✅ CONFIRMED", treat the easy path as experimental and **only use it if you also
-> have a serial cable ready** to recover. The reliable path below is fully proven.
+<!-- METHOD-B-STATUS: known-blocked -->
+> 🧪 **Easy path (web upload) status: BLOCKED on the EnGenius stock GUI, cause identified.**
+> A hardware test (2026-09-07) found the OEM `upload.cgi` rejects the upload at
+> **argument validation, before it ever looks at the file** — a 4 KB garbage file and
+> the real image are rejected identically. **The image's format is not the problem** —
+> the upload *request* is (likely the wrong auth context, or the CGI's "firmware"
+> argument is a filename/field this replay didn't match). We've since rebuilt the image
+> to match the officially-supported sibling WAX218's proven format exactly (see below),
+> which is correct regardless — but it does not, by itself, get past this block. Use the
+> reliable or SSH path for now; keep a serial cable ready if you try the easy path anyway.
 
 | | 🟢 Reliable path (recommended) | 🔵 SSH path (no serial) | 🟡 Easy path |
 |---|---|---|---|
 | **How** | Serial cable + bootloader commands | `ubiformat` over stock SSH | Upload one file in the vendor web page |
 | **Tools needed** | A USB-to-serial (UART) adapter, ~$10, and opening the case | An SSH client; stock firmware reachable | Nothing — just a browser |
 | **Difficulty** | Moderate (copy-paste commands) | Moderate (copy-paste commands) | Easy |
-| **Proven?** | ✅ Yes, on real hardware | 🧪 Proven on the sibling WAX218; not yet on EWS377 | 🧪 See the status box above |
+| **Proven?** | ✅ Yes, on real hardware | 🧪 Proven on the sibling WAX218; not yet on EWS377 | ❌ Blocked — see the status box above |
 | **If it goes wrong** | You're already on serial — recover in place | You'll *need* a serial cable to recover | You'll *need* a serial cable to recover |
 | **Go to** | [Section 4](#4-reliable-path--serial-cable) | [Section 3b](#3b-ssh-path--from-stock-no-serial) | [Section 3](#3-easy-path--web-upload) |
 
@@ -81,18 +85,23 @@ get stock back byte-for-byte (Section 6).
 
 ## 3. Easy path — web upload
 
-> Re-read the status box in [Section 1](#1-pick-your-path) first. If it isn't
-> confirmed yet, keep a serial cable handy.
+> ⚠️ **Currently blocked** — re-read the status box in [Section 1](#1-pick-your-path)
+> first. The OEM upload page rejects the file at the request level, before it even
+> reads the content, so this path will most likely not work yet. Kept here for anyone
+> who wants to try / help debug it — keep a serial cable handy.
 
 1. Make sure you're on stock EnGenius firmware and can reach its web interface.
-2. Download **`…-web-ui-factory.bin`** and **`SHA256SUMS`** from the
+2. Download **`…-web-ui-factory.fit`** and **`SHA256SUMS`** from the
    [release](https://github.com/ParkWardRR/ews377apv3-openwrt/releases), and check it:
    ```
    sha256sum -c SHA256SUMS --ignore-missing
    ```
-   It must say `OK`. If it doesn't, re-download — do not flash a bad file.
+   It must say `OK`. If it doesn't, re-download — do not flash a bad file. (This
+   artifact is built the same way as the officially-supported sibling WAX218's own
+   web-UI image — a kernel-only UBI wrapping the initramfs kernel, not our earlier
+   Senao-wrapped attempt.)
 3. In the EnGenius web UI, open the **firmware upgrade** page and upload
-   `…-web-ui-factory.bin`. Let it finish and reboot **without** cutting power.
+   `…-web-ui-factory.fit`. Let it finish and reboot **without** cutting power.
 4. After a minute or two it should come up as OpenWrt. Continue to
    [Section 5 — First boot](#5-first-boot).
 

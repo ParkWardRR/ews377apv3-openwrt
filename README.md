@@ -15,22 +15,27 @@ kernel 6.18.
 
 ## ⬇️ Downloads
 
-Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** (tag `v0.1`).
+Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** (tag `v0.2`).
 
 | File | Use | Status |
 | --- | --- | --- |
-| `…-squashfs-factory.ubi` | UART + u-boot `nand write` to slot 0 | ✅ **hardware-proven** |
+| `…-squashfs-factory.ubi` | UART + u-boot `nand write`, **or** SSH + `ubiformat`, to slot 0 | ✅ **hardware-proven** (UART) / 🧪 SSH path untested on EWS377 |
 | `…-initramfs-uImage.itb` | RAM boot (dry-run / recovery, nothing written) | ✅ proven |
 | `…-squashfs-sysupgrade.bin` | upgrades once on OpenWrt | standard |
-| `…-web-ui-factory.bin` | OEM web/LuCI updater (one-click) | 🧪 see status ↓ |
-| `…-squashfs-qsdk-factory.itb` | OEM CLI updater | 🧪 see status ↓ |
+| `…-web-ui-factory.fit` | OEM web updater (one-click) — built **the same way as the officially-supported sibling `netgear_wax218`** (kernel-only UBI, initramfs-based) | 🧪 see status ↓ |
 
-<!-- METHOD-B-STATUS: pending -->
-> 🧪 **One-click web-upload status: NOT YET CONFIRMED on hardware.** The
-> `web-ui-factory.bin` / `qsdk-factory.itb` images are built and match the vendor
-> format, but haven't been validated on a real unit yet — treat them as experimental
-> and only use them with a serial cable ready to recover. **The UART/u-boot install
-> (`factory.ubi`) is fully proven.** (This one line flips to ✅/❌ once tested.)
+<!-- METHOD-B-STATUS: known-blocked -->
+> 🧪 **One-click web-upload status: blocked on the EnGenius stock GUI, root cause identified.**
+> A hardware test on 2026-09-07 found the OEM `upload.cgi` rejects the upload at
+> **argument validation, before it ever reads the file** — a 4 KB garbage file and the
+> real 15 MB image are rejected identically (`INVALID VALUE OF ARGUMENTS:firmware`).
+> **This means the image's contents/format are not the blocker** — the request itself
+> (auth context / multipart field contract) is. Rebuilding the artifact the WAX218 way
+> (done, see below) is still worthwhile — it makes our image byte-for-byte structurally
+> proven for this exact bootloader — but by itself it does **not** fix the OEM GUI
+> rejection. The **UART/u-boot install (`factory.ubi`) remains the only proven path.**
+> Next step: drive the real GUI form (not a replayed API call) to capture the actual
+> request contract. (This box flips once that's tested.)
 
 **New here?** The **[install & back-to-stock guide](docs/install-and-restore.md)** is
 written for both first-timers and power users — pick the reliable (serial), SSH
