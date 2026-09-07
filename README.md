@@ -86,6 +86,7 @@ EnGenius u-boot:
 | File | Purpose |
 | --- | --- |
 | [docs/install-and-restore.md](docs/install-and-restore.md) | Install OpenWrt + restore to stock (serial / SSH / web paths) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Plan: staying WAX218-aligned + extending support to ECW230v3 and EWS377-FIT (same hardware, 3 vendor headers) |
 | [docs/wax218-equivalence.md](docs/wax218-equivalence.md) | Same board as the official OpenWrt NETGEAR WAX218 — shared/differing traits + borrowed SSH install method |
 | [docs/hardware-reference.md](docs/hardware-reference.md) | MTD map, boot chain, u-boot env, recovery |
 | [docs/openwrt-porting-plan.md](docs/openwrt-porting-plan.md) | End-to-end port plan (with outcomes) |
