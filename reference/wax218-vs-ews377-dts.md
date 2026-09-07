@@ -46,8 +46,8 @@ kmod-spi-bitbang` packages, and uses plain `gpio-leds` on `&tlmm 54/55/56`.
 
 ### Wi-Fi calibration variant — **different string + blob**
 ```
-WAX218:  qcom,ath11k-calibration-variant = "Netgear-WAX218";  (ipq-wifi-netgear_wax218)
-EWS377:  qcom,ath11k-calibration-variant = "<EnGenius-EWS377AP-V3>";  board_id 0x290 → bdwlan.b290
+WAX218:  qcom,ath11k-calibration-variant = "Netgear-WAX218";       (ipq-wifi-netgear_wax218)
+EWS377:  qcom,ath11k-calibration-variant = "EnGenius-EWS377AP-v3";  (bdwlan.b290; note lowercase -v3)
 ```
 The EWS377 ships `ipq-wifi-engenius_ews377ap-v3` built from `bdwlan.b290`
 (`reference/wifi-board-data/board-2.bin.engenius_ews377ap-v3`); per-device caldata still

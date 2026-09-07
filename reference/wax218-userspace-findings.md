@@ -116,6 +116,31 @@ the Finding 4 `owrt_*` preseeding, both transfer to the EWS377 without change. T
 `30_uboot-envtools` block should be exactly `ubootenv_add_mtd "0:appsblenv" "0x0"
 "0x40000" "0x20000"` (matching whatever case its SMEM exposes for the appsblenv label).
 
+## Finding 6 — board-2.bin matches by variant string, not board-id (qmi-board-id=255)
+
+The WAX218 `board-2.bin` (from `/lib/firmware/ath11k/IPQ8074/hw2.0/board-2.bin`) holds a
+single entry:
+```
+bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=Netgear-WAX218
+```
+`qmi-board-id=255` (`0xFF`) is the "unset in OTP" fallback, so ath11k selects the board
+data by the **variant string** — which the DTS supplies via
+`qcom,ath11k-calibration-variant = "Netgear-WAX218"` (Finding from the decompiled DTS).
+
+**Cross-check against this repo's EWS377 board data** (`board.json` +
+`board-2.bin.engenius_ews377ap-v3`) — same shape, already correct:
+```
+bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=EnGenius-EWS377AP-v3   ->  bdwlan.b290
+```
+So the pieces line up exactly with the WAX218 model:
+- **qmi-board-id is 255 on both** — matching is purely by variant string.
+- The Senao `qcom,board_id = 0x290` (→ `bdwlan.b290`) is a *separate* vendor concept from
+  ath11k's `qmi-board-id`; don't conflate them.
+- **Exact variant string to use in the EWS377 DTS:** `EnGenius-EWS377AP-v3`
+  (**lowercase `-v3`**) — it must match the `board-2.bin` entry byte-for-byte or ath11k
+  won't find the caldata. (Pinned here to correct the placeholder in
+  `wax218-vs-ews377-dts.md`.)
+
 ---
 
 ### Provenance
