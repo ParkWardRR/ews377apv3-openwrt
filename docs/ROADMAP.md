@@ -20,11 +20,13 @@ and the real upstream WAX218 build:
 | The stock web updater (`upload.cgi`) validates **that header** before flashing — this is *why* Pelegrún's cross-flash tool works by re-heading exactly this field | see [`pelegrun-ap-hk07-firmware-tools`](https://github.com/ParkWardRR/pelegrun-ap-hk07-firmware-tools) |
 | The EWS377AP v3's `upload.cgi` currently rejects **any** upload at argument validation, before content is read | 2026-09-07 hardware test, see [install-and-restore.md](install-and-restore.md) status box |
 
-**Net implication:** one OpenWrt build (kernel + `ipq8072-ews377ap-v3.dts` + `config@hk07`)
-is very likely enough for all three SKUs — the differentiation work is almost entirely
-in the **outer vendor header**, not the OS. The open question is whether each SKU's
-physical LEDs/antennas/board-id variant differ enough to need their own DTS entry —
-not yet validated (see §4).
+**Net implication:** a shared base DTS (kernel + `ipq8072-ews377ap-v3.dts` +
+`config@hk07`) is confirmed sufficient for all three SKUs at the DTS-property level —
+LEDs, reset GPIO, WiFi board-id, and the 2.5G PHY wiring are identical (see §4). That is
+**not** the same claim as "one build, no per-SKU work" — each SKU still gets its own
+OpenWrt `Device/*` profile (§5 Phase 3), and DTS equivalence alone does not prove
+identical flash geometry, calibration provenance, regulatory certification, or
+sysupgrade behavior across units — those are separate, still-open items (§4).
 
 ## 1. Principles — stay as close to the WAX218 as this hardware allows
 
@@ -39,7 +41,10 @@ not yet validated (see §4).
    that's **shared across all three SKUs** — see §3.
 4. **Same no-UART install method.** SSH + `ubiformat`, mirroring WAX218's documented
    method — already written up as "3b" in [install-and-restore.md](install-and-restore.md),
-   not yet hardware-tested on EWS377AP v3 (and not yet on ECW230v3/EWS377-FIT).
+   not yet hardware-tested on EWS377AP v3 (and not yet on ECW230v3/EWS377-FIT). **Hard
+   rule: never hardcode an mtd number.** `/dev/mtd12` is not portable across boards or
+   even across firmware generations of the *same* board — always verify the target
+   partition live (`cat /proc/mtd`) on the actual unit immediately before writing.
 5. **Prefer upstream idioms over inventing our own.** When something WAX218 already
    solved (LED triggers, caldata extraction, env geometry) applies unchanged, copy it
    verbatim; when it doesn't apply (WAX218's 3-LED shift register vs. our single RGB
@@ -103,6 +108,27 @@ The `squashfs-factory.ubi` / `sysupgrade.bin` / `initramfs-uImage.itb` artifacts
 artifact needs per-SKU variants, and only because of *EnGenius's* validator, not
 OpenWrt's.
 
+### Artifact state model — `web-ui-factory.fit` is NOT persistent, and that must be explicit
+
+"Kernel-only UBI" is correct but easy to misread as "the whole install." It isn't. Per
+the WAX218's own documented method (which this whole approach mirrors), uploading
+`web-ui-factory.fit` boots a **temporary initramfs/recovery OpenWrt environment** — not
+a persistent install. A second, separate step (`sysupgrade.bin`, run from inside that
+temporary environment via LuCI or CLI) is what actually persists OpenWrt to NAND. A
+real WAX218 field report documents exactly the failure mode this ambiguity risks: a
+unit that booted the factory image fine, then got stuck permanently returning to
+initramfs after a later persistent-flash attempt failed.
+
+| Artifact | Source state | Resulting state | Persistent? | Recovery if it fails here |
+|---|---|---|---|---|
+| Senao-wrapped `web-ui-factory.fit` | Stock OEM GUI | Temporary initramfs/recovery OpenWrt | **No** | Reboot returns to the stock slot (untouched) or UART/u-boot |
+| `initramfs-uImage.itb` | u-boot `bootm` (RAM) | Temporary OpenWrt | **No** | Reboot |
+| `squashfs-factory.ubi` | UART/u-boot `nand write`, or SSH+`ubiformat` | Persistent OpenWrt on slot 0 | **Yes, once boot succeeds** | UART + byte-exact backup restore |
+| `squashfs-sysupgrade.bin` | Running OpenWrt (any of the above) | New persistent OpenWrt | **Yes** | Standard OpenWrt sysupgrade recovery — **not yet validated on this NAND/partition layout**, see §4 |
+
+Every install writeup (this roadmap, `install-and-restore.md`, any future per-SKU guide)
+must state which row an artifact is, not just link the file.
+
 ## 4. Open validation items (do before shipping per-model images)
 
 - [x] **Decompile ECW230v3's and EWS377-FIT's own `fdt@hk07`** and diff against the
@@ -126,6 +152,23 @@ OpenWrt's.
 - [ ] Hardware-test SSH + `ubiformat` (already documented) on at least one unit before
       calling it proven — currently mirrored from WAX218 but untested on any EnGenius SKU.
       **Still open — needs hardware.**
+- [ ] **Capture the live boot/flash state machine per SKU** — full `/proc/mtd`,
+      `ubinfo -a`, `fw_printenv`, and a NAND bad-block map, from a live unit, for every
+      state (stock / temporary OpenWrt / persistent OpenWrt / post-sysupgrade). Don't
+      infer this from vendor docs or from what worked on the EWS377AP v3 alone — a real
+      WAX218 field report shows a unit stuck permanently in initramfs after a failed
+      persistent-flash attempt, which is exactly the failure mode this item exists to
+      rule out before it's someone else's bricked device. **Still open — needs hardware,
+      one SKU at a time (§5 Phase 0/1).**
+- [ ] **Radio/regulatory provenance per SKU, not just board-id.** `qcom,board_id=0x290`
+      matching on all three (confirmed) is necessary but not sufficient — confirm each
+      SKU carries the **same regulatory certification** (the shared FCC ID only
+      establishes WAX218 ↔ EWS377AP v3; ECW230v3 and EWS377-FIT are not yet checked),
+      and that antenna count/gain and the exact ath11k BDF variant are correct per SKU.
+      Upstream guidance is explicit that board-calibration data can be device-specific
+      even on shared silicon — don't assume one `ipq-wifi-*` package is legally and
+      technically correct for all three without checking. **Still open — needs hardware
+      + a compliance/regulatory-domain check per SKU.**
 
 ## 5. Phased execution plan
 
@@ -141,31 +184,75 @@ content. Do this once against EWS377AP v3 first (unit already available); re-tes
 against ECW230v3/EWS377-FIT only once the pattern is understood, since it may be
 firmware-train-specific.
 
-**Phase 3 — Extend the device recipe.** §4 confirmed one DTS covers all three SKUs, so
-this is recipe-only: add `Device/engenius_ecw230v3` and `Device/engenius_ews377-fit`
-entries reusing `ipq8072-ews377ap-v3.dts` as-is (same `DEVICE_DTS_CONFIG :=
-config@hk07`), each pointing at the shared `ipq-wifi-engenius_ews377ap-v3` board
-package (same `qcom,board_id = 0x290` confirmed on all three — no new board-2.bin
-needed unless RF testing on the other two SKUs later says otherwise). Build and
-RAM-boot-test each on real hardware before any NAND write, same gating this project has
-used throughout — a shared DTS is a strong prior, not a substitute for testing.
+**Phase 3 — Extend the device recipe: shared base DTS, one profile per SKU.** §4
+confirmed the DTS *properties* are identical across all three, so this is recipe-only —
+**not** zero per-SKU work. Add `Device/engenius_ecw230v3` and
+`Device/engenius_ews377-fit` as their own distinct `Device/*` stanzas (own
+`SUPPORTED_DEVICES`/compat identity, own `DEVICE_MODEL`), each including the shared
+`ipq8072-ews377ap-v3.dts` (same `DEVICE_DTS_CONFIG := config@hk07`) rather than one
+generic multi-SKU device. This matters beyond bookkeeping: OpenWrt's `sysupgrade`
+checks on-device board identity against the built profile, and treating three marketed
+SKUs as one blurred profile risks exactly the board-name/profile mismatches upstream
+has had to fix before. Each pointing at the shared `ipq-wifi-engenius_ews377ap-v3`
+board package for now (same `qcom,board_id = 0x290` confirmed on all three) — revisit if
+the §4 regulatory/BDF item finds a real per-SKU difference. Build and RAM-boot-test each
+on real hardware before any NAND write, same gating this project has used throughout —
+a shared DTS is a strong prior, not a substitute for testing.
 
 **Phase 4 — Build & wrap three release images.** Automate: one shared kernel-only UBI
 build (§3), then three `mksenaofw`-wrapped artifacts using the confirmed per-SKU header
 fields from Phase 1. Publish as a single multi-SKU release (or three release assets in
 one tag) on this repo, each named after its SKU, each with its own `SHA256SUMS` line.
+**Include negative tests**, not just positive ones: confirm an EWS377AP v3-wrapped image
+is *rejected* by ECW230v3's and EWS377-FIT's own GUIs (and vice versa), and that a
+malformed header / correct header with a corrupted payload fails safely. Otherwise "all
+three wrappers work" could actually mean the validator accepts anything — the same
+failure mode as the argument-validation issue already found on EWS377AP v3.
 
 **Phase 5 — Hardware validation, one SKU at a time.** For each SKU: UART/u-boot install
-first (proven method, safety net always present) → SSH+`ubiformat` test → only once
-both are solid, attempt the web-upload path (gated on Phase 2's fix). Never skip
-straight to the web-upload path on a new SKU.
+first (proven method, safety net always present) → capture the live boot/flash state
+machine (§4) → SSH+`ubiformat` test → a `sysupgrade` round-trip (config-preserving) →
+only once all of that is solid, attempt the web-upload path (gated on Phase 2's fix).
+Never skip straight to the web-upload path on a new SKU. Minimum per-SKU checks before
+calling a SKU "done": board identity (`ubus call system board`, compat string, MAC
+source), both radios up with client association, 2.5G link, an interrupted-flash /
+wrong-model-wrapper rejection test, and a documented UART recovery path specific to that
+SKU (not just "inherited from the WAX218 docs"). Full soak/thermal/regulatory-lab
+testing is out of scope for a hobby-scale port — treat it as a "nice to have if a tester
+has the equipment," not a gate.
 
 **Phase 6 — Docs + upstreaming.** Fold per-SKU install steps into
 [install-and-restore.md](install-and-restore.md) (one guide, SKU-select at the top,
 not three separate documents). Extend `UPSTREAMING-PLAN.md` (currently EWS377AP v3-only)
-to cover whichever SKUs are validated, following the exact WAX218 PR shape.
+to cover whichever SKUs are validated, following the exact WAX218 PR shape. Before
+submitting: build and boot-test against **current upstream `main`**, not just the
+`openwrt-nss-edma` fork (NSS/EDMA patches can hide a dependency mainline reviewers can't
+reproduce); set `SUPPORTED_DEVICES`/`DEVICE_COMPAT_VERSION` correctly per SKU; pin the
+OpenWrt commit, toolchain, and vendor-firmware-input hashes used to build each release
+(`SHA256SUMS` already done — extend to a short manifest); confirm the `ipq-wifi-*`
+board-data package's source/redistribution terms are acceptable for a mainline
+submission, not just a downstream fork.
 
-## 6. Non-negotiables (carried over from the rest of this repo)
+## 6. Legal / licensing — open, not resolved
+
+Flagging honestly rather than ignoring: this project decodes and repackages vendor FIT
+images (Qualcomm QSDK-derived, via EnGenius/NETGEAR) and redistributes derived
+artifacts (wrapped web images, board-data files). Two questions are **not yet
+answered** and should be before any wider release or an upstream PR:
+
+- **GPL/QSDK compliance of redistributed artifacts.** Confirm the release images don't
+  ship non-redistributable Qualcomm binaries verbatim (the same question OpenWrt itself
+  navigates for IPQ807x — NSS, WiFi firmware, `board-2.bin`/caldata). Where a blob isn't
+  clearly redistributable, keep it a build-time input the user supplies (as
+  `pelegrun-ap-hk07-firmware-tools`'s scope note already does for OEM images), not a
+  shipped release asset.
+- **EnGenius's own terms on cross-SKU flashing.** SKU differentiation (EWS377AP v3 vs.
+  ECW230v3 vs. EWS377-FIT) may be tied to EnGenius Cloud subscription features or other
+  licensing terms, separate from the pure hardware question. Not a blocker for
+  personal/research use on hardware you own, but worth knowing before recommending it
+  broadly.
+
+## 7. Non-negotiables (carried over from the rest of this repo)
 
 - Never write the ART partition or the bootloader region (`0x0`–`0x1000000`) on any SKU.
 - Every new SKU gets its own byte-exact stock backup before any NAND write.
@@ -173,3 +260,8 @@ to cover whichever SKUs are validated, following the exact WAX218 PR shape.
 - No open Wi-Fi SSIDs during testing; tear down test networks after use.
 - Keep a UART safety net attached for every install method until that method is proven
   on that specific SKU — proven on one SKU does not mean proven on another.
+- Never hardcode an MTD number in a command or a doc — always verify live on the actual
+  unit first (§1, principle 4).
+- A "web-ui-factory.fit boots" result is not "OpenWrt is installed" — persistence
+  requires the follow-up `sysupgrade` step (§3 artifact table). Don't conflate the two
+  in any writeup.

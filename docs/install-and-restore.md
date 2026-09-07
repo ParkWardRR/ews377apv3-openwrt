@@ -102,12 +102,23 @@ get stock back byte-for-byte (Section 6).
    Senao-wrapped attempt.)
 3. In the EnGenius web UI, open the **firmware upgrade** page and upload
    `…-web-ui-factory.fit`. Let it finish and reboot **without** cutting power.
-4. After a minute or two it should come up as OpenWrt. Continue to
+4. After a minute or two it should come up as OpenWrt — but **this is a temporary boot,
+   not a finished install yet.** `web-ui-factory.fit` boots a self-contained OpenWrt
+   environment from RAM; nothing is saved to flash by this step alone (mirrors exactly
+   how the sibling WAX218's own web-upload method works). If you power-cycle now, you go
+   back to whatever was on the flash before.
+5. **To make it persistent**, while still in that temporary OpenWrt session: download
+   `…-squashfs-sysupgrade.bin`, verify its checksum, and flash it —
+   `sysupgrade -n openwrt-...-squashfs-sysupgrade.bin` over SSH, or LuCI → System →
+   Backup/Flash Firmware. *This* step is what actually writes OpenWrt to NAND. Only
+   after this reboot completes should you continue to
    [Section 5 — First boot](#5-first-boot).
 
 **If the upload is rejected, or it reboots back into stock / doesn't come up:** the
 easy path didn't take. Switch to the [reliable path](#4-reliable-path--serial-cable) —
-this is exactly why we said keep a serial cable ready.
+this is exactly why we said keep a serial cable ready. If step 4 booted OpenWrt but you
+skip step 5 and just power-cycle, you have not installed anything — that's expected,
+not a failure.
 
 ---
 
