@@ -95,4 +95,33 @@ Finding 5), so a copied `05_fw_defaults` gives EnGenius units the same zero-touc
 provisioning. It also closes the "SSH is open with no password on first boot" gap in the
 install guide: seed `owrt_root_password_hash` (or `owrt_ssh_auth_key`) via `fw_setenv`
 and the AP is never passwordless.
+
+## Finding 5 — the u-boot env partition is identical to the EWS377's
+
+`/etc/uci-defaults/30_uboot-envtools`:
+```
+netgear,wax218|netgear,wax620|netgear,wax630| ... )
+	ubootenv_add_mtd "0:appsblenv" "0x0" "0x40000" "0x20000"
+	;;
+```
+WAX218's OpenWrt `fw_env` config = partition **`0:appsblenv`**, offset `0x0`, env size
+**`0x40000`** (256 KiB), sector **`0x20000`** (128 KiB). That is **byte-for-byte the same**
+as the EWS377 OEM `fw_env.config` recorded in `docs/hardware-reference.md`:
+`/dev/mtd7 0x0 0x40000 0x20000 2` (`mtd7 = 0:APPSBLENV`).
+
+**Why it matters:** this is the plumbing the whole SSH/`ubiformat` install path leans on.
+Identical env geometry means `fw_setenv active_fw 0|1` behaves the same on both devices —
+so the WAX218's `fw_setenv active_fw 1 → ubiformat → fw_setenv active_fw 0` procedure, and
+the Finding 4 `owrt_*` preseeding, both transfer to the EWS377 without change. The EWS377
+`30_uboot-envtools` block should be exactly `ubootenv_add_mtd "0:appsblenv" "0x0"
+"0x40000" "0x20000"` (matching whatever case its SMEM exposes for the appsblenv label).
+
+---
+
+### Provenance
+All five findings extracted 2026-09-07 from
+`openwrt-25.12.2-qualcommax-ipq807x-netgear_wax218-squashfs-factory.ubi` (UBI `rootfs`
+volume → squashfs), read on the Mac mini with `ubireader` + `PySquashfsImage`. See
+[wax218-equivalence.md](../docs/wax218-equivalence.md) and
+[wax218-vs-ews377-dts.md](wax218-vs-ews377-dts.md).
 </content>
