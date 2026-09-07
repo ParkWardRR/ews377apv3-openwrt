@@ -70,4 +70,29 @@ ath11k caldata lives in **ART (mtd11)**. Two portability notes:
   the EWS377's radios come up with a wrong/duplicate MAC, add `ath11k_patch_mac` from the
   ART/label MAC like the `netgear,wax620`/`wax630` cases do — but only if hardware shows
   it's needed.
+
+## Finding 4 — first-boot config can be preseeded from u-boot env
+
+`/etc/board.d/05_fw_defaults`:
+```
+fw_loadenv
+...
+[ -f /var/run/uboot-env/owrt_ssid -a -f /var/run/uboot-env/owrt_wifi_key ] &&
+	ucidef_set_wireless all "$(cat .../owrt_ssid)" sae-mixed "$(cat .../owrt_wifi_key)"
+[ -f .../owrt_country ]              && ucidef_set_country              "$(cat .../owrt_country)"
+[ -f .../owrt_ssh_auth_key ]         && ucidef_set_ssh_authorized_key   "$(cat .../owrt_ssh_auth_key)"
+[ -f .../owrt_root_password_plain ]  && ucidef_set_root_password_plain  "$(cat .../owrt_root_password_plain)"
+[ -f .../owrt_root_password_hash ]   && ucidef_set_root_password_hash   "$(cat .../owrt_root_password_hash)"
+[ -f .../owrt_timezone ]             && ucidef_set_timezone             "$(cat .../owrt_timezone)"
+```
+The WAX218 lets you **pre-provision first-boot state from u-boot env variables**
+(`owrt_ssid`, `owrt_wifi_key` → WPA2/3 `sae-mixed`, `owrt_country`, `owrt_ssh_auth_key`,
+`owrt_root_password_plain|hash`, `owrt_timezone`). Set them with `fw_setenv owrt_ssid …`
+before first boot and OpenWrt comes up already configured — handy for fleet provisioning.
+
+**For the EWS377AP v3** this works identically (same u-boot, same env partition — see
+Finding 5), so a copied `05_fw_defaults` gives EnGenius units the same zero-touch
+provisioning. It also closes the "SSH is open with no password on first boot" gap in the
+install guide: seed `owrt_root_password_hash` (or `owrt_ssh_auth_key`) via `fw_setenv`
+and the AP is never passwordless.
 </content>
