@@ -105,24 +105,27 @@ OpenWrt's.
 
 ## 4. Open validation items (do before shipping per-model images)
 
-- [ ] **Decompile ECW230v3's and EWS377-FIT's own `fdt@hk07`** (not just confirm the
-      config name exists) and diff against the EWS377AP v3 DTS we already have — check
-      LEDs, reset GPIO, WiFi board-id/variant, and the 2.5G PHY wiring for any real
-      per-SKU difference. If they're identical, one DTS truly covers all three
-      (`compatible` string can still list all three board names). If they differ, each
-      SKU needs its own device profile in the recipe (still sharing the DTS via
-      `#include`, per normal OpenWrt convention).
-- [ ] Confirm each SKU's own **WiFi board-id / calibration variant** — EWS377AP v3 uses
-      `qcom,board_id = 0x290`, already confirmed shared with ECW230v3 (`bdwlan.b290`
-      already staged in `reference/wifi-board-data/`); EWS377-FIT's board-id is not yet
-      confirmed against a real unit.
-- [ ] Extract each SKU's real capwap `firmware_ver`/`datecode` conventions (not just the
-      model string) so a rebuilt header round-trips cleanly through `mksenaofw -d`.
+- [x] **Decompile ECW230v3's and EWS377-FIT's own `fdt@hk07`** and diff against the
+      EWS377AP v3 DTS. **Done, 2026-09-07 — see [`reference/model-differences.md`](../reference/model-differences.md).**
+      Result: reset GPIO 52, LED GPIOs 54/55/56, WiFi `qcom,board_id = 0x290`, and the
+      2.5G PHY (`port_id=6`/`phy_address=0x1c`) are **identical across all three SKUs**.
+      Only the `compatible` string differs, cosmetically (SDK-generation naming drift —
+      ECW230v3's stock firmware kernel is a 2023 build, the other two are 2026 builds).
+      **One shared DTS/device-profile is sufficient for all three** — no per-SKU DTS
+      fork needed; §5 Phase 3 is simplified accordingly (recipe-only, no new DTS work).
+- [x] Confirm each SKU's own **WiFi board-id / calibration variant**. **Done** — `0x290`
+      confirmed identical on all three via their own `fdt@hk07` (not just EWS377AP v3 and
+      ECW230v3 as before; EWS377-FIT now confirmed too). `bdwlan.b290` in
+      `reference/wifi-board-data/` should cover all three.
+- [x] Extract each SKU's real capwap `firmware_ver`/`datecode` conventions. **Done** —
+      recorded in [`reference/model-differences.md`](../reference/model-differences.md)
+      for use when building each SKU's wrapped header.
 - [ ] Test whether the `upload.cgi` argument-validation blocker (§2) is EWS377AP v3-
       specific or common across all three GUIs — needs a live test per SKU once the
-      root cause is found.
+      root cause is found. **Still open — needs hardware.**
 - [ ] Hardware-test SSH + `ubiformat` (already documented) on at least one unit before
       calling it proven — currently mirrored from WAX218 but untested on any EnGenius SKU.
+      **Still open — needs hardware.**
 
 ## 5. Phased execution plan
 
@@ -138,11 +141,14 @@ content. Do this once against EWS377AP v3 first (unit already available); re-tes
 against ECW230v3/EWS377-FIT only once the pattern is understood, since it may be
 firmware-train-specific.
 
-**Phase 3 — Extend the device recipe.** Once Phase 1 confirms whether one DTS or three
-suffices: add `Device/engenius_ecw230v3` and `Device/engenius_ews377-fit` entries
-(reusing the shared DTS if confirmed identical), each with the correct
-`ipq-wifi-*` board package. Build and RAM-boot-test each on real hardware before any
-NAND write, same gating this project has used throughout.
+**Phase 3 — Extend the device recipe.** §4 confirmed one DTS covers all three SKUs, so
+this is recipe-only: add `Device/engenius_ecw230v3` and `Device/engenius_ews377-fit`
+entries reusing `ipq8072-ews377ap-v3.dts` as-is (same `DEVICE_DTS_CONFIG :=
+config@hk07`), each pointing at the shared `ipq-wifi-engenius_ews377ap-v3` board
+package (same `qcom,board_id = 0x290` confirmed on all three — no new board-2.bin
+needed unless RF testing on the other two SKUs later says otherwise). Build and
+RAM-boot-test each on real hardware before any NAND write, same gating this project has
+used throughout — a shared DTS is a strong prior, not a substitute for testing.
 
 **Phase 4 — Build & wrap three release images.** Automate: one shared kernel-only UBI
 build (§3), then three `mksenaofw`-wrapped artifacts using the confirmed per-SKU header
