@@ -24,18 +24,22 @@ Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews37
 | `…-squashfs-sysupgrade.bin` | upgrades once on OpenWrt | standard |
 | `…-web-ui-factory.fit` | OEM web updater (one-click) — built **the same way as the officially-supported sibling `netgear_wax218`** (kernel-only UBI, initramfs-based) | 🧪 see status ↓ |
 
-<!-- METHOD-B-STATUS: known-blocked -->
-> 🧪 **One-click web-upload status: blocked on the EnGenius stock GUI, root cause identified.**
-> A hardware test on 2026-09-07 found the OEM `upload.cgi` rejects the upload at
-> **argument validation, before it ever reads the file** — a 4 KB garbage file and the
-> real 15 MB image are rejected identically (`INVALID VALUE OF ARGUMENTS:firmware`).
-> **This means the image's contents/format are not the blocker** — the request itself
-> (auth context / multipart field contract) is. Rebuilding the artifact the WAX218 way
-> (done, see below) is still worthwhile — it makes our image byte-for-byte structurally
-> proven for this exact bootloader — but by itself it does **not** fix the OEM GUI
-> rejection. The **UART/u-boot install (`factory.ubi`) remains the only proven path.**
-> Next step: drive the real GUI form (not a replayed API call) to capture the actual
-> request contract. (This box flips once that's tested.)
+<!-- METHOD-B-STATUS: mechanism-proven-persistence-unit-blocked -->
+> 🧪 **One-click web-upload: the HTTP mechanism is now proven to work — persistence
+> validation needs a second unit.** The earlier "rejects everything" result turned out
+> to be a `product_id` mismatch (the OEM's `upload.cgi` checks the uploaded image's
+> header against the *running* firmware's own SKU identity, not a request-contract or
+> signature issue). Re-headed correctly, the OEM's `upload.cgi` → `fw_upgrade` HTTP
+> flow genuinely accepts, stages, and flashes an image — **no UART needed for that
+> part.** But on the one test unit available, the resulting boot hangs on a
+> reproducible, non-factory-registered bad NAND block in the spare slot the OEM's
+> updater always targets — a hardware issue specific to that unit, confirmed
+> independent of image format (two different image types failed at the identical
+> block). **The UART/u-boot install (`factory.ubi`) remains the only path proven to
+> fully persist.** Full writeup: [`reference/method-b-findings.md`](reference/method-b-findings.md).
+> **Help wanted:** if you have a second unit, see
+> [the tracking issue](https://github.com/ParkWardRR/ews377apv3-openwrt/issues) — this
+> could be the full no-UART install path once confirmed on healthier hardware.
 
 **New here?** The **[install & back-to-stock guide](docs/install-and-restore.md)** is
 written for both first-timers and power users — pick the reliable (serial), SSH

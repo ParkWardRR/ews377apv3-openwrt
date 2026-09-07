@@ -18,7 +18,8 @@ and the real upstream WAX218 build:
 | WAX218's official `bootipq` needs the FIT config named after the board (`config@hk07`) — mainline sets this via `DEVICE_DTS_CONFIG` | Upstream commit [`7801161c`](https://github.com/openwrt/openwrt/commit/7801161c4bb2413817b3dfd01695050e2da27bf3); reproduced independently on our EWS377AP v3 hardware |
 | Each SKU is differentiated **only by its Senao/capwap firmware header**, not by different silicon | vendor `0x0101` shared by all; `product_id` EWS377AP v3=`0x011a`(282), ECW230v3=`0x011c`(284), EWS377-FIT=`0x012c`(300); capwap `model` field = `"EWS377APv3"` / `"ECW230v3"` / `"EWS377-FIT"` respectively |
 | The stock web updater (`upload.cgi`) validates **that header** before flashing — this is *why* Pelegrún's cross-flash tool works by re-heading exactly this field | see [`pelegrun-ap-hk07-firmware-tools`](https://github.com/ParkWardRR/pelegrun-ap-hk07-firmware-tools) |
-| The EWS377AP v3's `upload.cgi` currently rejects **any** upload at argument validation, before content is read | 2026-09-07 hardware test, see [install-and-restore.md](install-and-restore.md) status box |
+| `upload.cgi` checks the uploaded image's `product_id` against the **running firmware's own identity**, not a request contract or signature — re-heading to match unblocks the full upload → stage → flash-trigger HTTP flow | 2026-09-07 hardware test; see [`reference/method-b-findings.md`](../reference/method-b-findings.md) |
+| Full persistence via that HTTP flow is **not yet confirmed on any tested unit** — the one available unit hangs on a reproducible, unit-specific bad NAND block in its spare slot, independent of image format | Same findings doc; tracked as a community-validation item, §4 |
 
 **Net implication:** a shared base DTS (kernel + `ipq8072-ews377ap-v3.dts` +
 `config@hk07`) is confirmed sufficient for all three SKUs at the DTS-property level —
@@ -67,14 +68,18 @@ image will be rejected by all three GUIs. So the web-upload path needs:
 
 This is exactly the header Pelegrún's `quarry rehead` tool already knows how to write —
 the build-side work is to bake the right header into each of the three release
-artifacts once, so end users on any of the three SKUs get a file their own GUI accepts
-(once the deeper `upload.cgi` argument-validation blocker, below, is also solved).
+artifacts once, so end users on any of the three SKUs get a file their own GUI accepts.
 
-**Important, and not yet solved by this alone:** the EWS377AP v3's `upload.cgi`
-currently rejects uploads at the **request/argument** level, before it ever reads the
-header — see the status box in [install-and-restore.md](install-and-restore.md). Correct
-per-model headers are **necessary but not sufficient**; the request-contract issue must
-be cracked (or found to differ per SKU/firmware train) independently, per §5 Phase 2.
+**Update, 2026-09-07 — resolved, and a new finding.** `upload.cgi`'s check turned out
+to be a `product_id` match against the **currently-running firmware's own identity**
+(not the SKU printed on the case — these units are cross-flashable), not a
+request-contract problem. Correctly headed, the full HTTP flow (upload → stage →
+flash-trigger) genuinely works. But the resulting boot has not yet persisted on the one
+unit tested — a reproducible, unit-specific bad NAND block in the spare slot the OEM
+updater always targets, confirmed independent of image format. See
+[`reference/method-b-findings.md`](../reference/method-b-findings.md) for the full
+trail. §5 Phase 2 is now "get a second unit to confirm persistence," not "crack the
+request contract."
 
 ## 3. Build plan — one payload, three wrapped artifacts
 
@@ -146,9 +151,14 @@ must state which row an artifact is, not just link the file.
 - [x] Extract each SKU's real capwap `firmware_ver`/`datecode` conventions. **Done** —
       recorded in [`reference/model-differences.md`](../reference/model-differences.md)
       for use when building each SKU's wrapped header.
-- [ ] Test whether the `upload.cgi` argument-validation blocker (§2) is EWS377AP v3-
-      specific or common across all three GUIs — needs a live test per SKU once the
-      root cause is found. **Still open — needs hardware.**
+- [x] Find the `upload.cgi` rejection cause. **Resolved, 2026-09-07** — it's a
+      `product_id`-vs-running-firmware identity check, not a request-contract problem;
+      see [`reference/method-b-findings.md`](../reference/method-b-findings.md).
+- [ ] **Confirm Method B persistence on a second unit.** The HTTP mechanism is proven;
+      the resulting boot has not yet persisted on the one unit available, due to a
+      unit-specific bad NAND block, not the mechanism or image. Needs a different unit
+      to isolate unit-specific hardware from anything systemic. Tracked publicly —
+      **open, community help wanted** (see the repo's Issues).
 - [ ] Hardware-test SSH + `ubiformat` (already documented) on at least one unit before
       calling it proven — currently mirrored from WAX218 but untested on any EnGenius SKU.
       **Still open — needs hardware.**
@@ -177,12 +187,16 @@ real firmware files already available for all three SKUs. Deliverable: a
 `reference/model-differences.md` recording confirmed identical-vs-different facts per
 SKU, and the exact header fields needed for each wrapped image.
 
-**Phase 2 — Crack the web-upload request contract.** Independent of Phase 1: drive the
-*real* EnGenius GUI (not a replayed API call) in a headless browser to capture the
-actual `upload.cgi` request, since the current blocker is the request itself, not image
-content. Do this once against EWS377AP v3 first (unit already available); re-test
-against ECW230v3/EWS377-FIT only once the pattern is understood, since it may be
-firmware-train-specific.
+**Phase 2 — Confirm web-upload persistence on a second unit.** Resolved and superseded,
+2026-09-07: the request-contract theory was wrong — `upload.cgi` rejects on a
+`product_id` mismatch against the running firmware, not the request shape (see §0,
+§4, [`reference/method-b-findings.md`](../reference/method-b-findings.md)). Correctly
+headed, the HTTP flow works end-to-end and flashes the image, but the resulting boot
+hasn't yet persisted on the one unit available — a reproducible bad NAND block in that
+unit's spare slot, confirmed independent of image format. What's left is **not**
+reverse-engineering, it's **community validation**: someone with a second unit
+re-heading the current release image and confirming (or refuting) a clean, persistent
+boot. Tracked as a GitHub issue.
 
 **Phase 3 — Extend the device recipe: shared base DTS, one profile per SKU.** §4
 confirmed the DTS *properties* are identical across all three, so this is recipe-only —

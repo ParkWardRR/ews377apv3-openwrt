@@ -29,23 +29,25 @@ should see. A short [glossary](#glossary-plain-english) at the end explains the 
 
 ## 1. Pick your path
 
-<!-- METHOD-B-STATUS: known-blocked -->
-> 🧪 **Easy path (web upload) status: BLOCKED on the EnGenius stock GUI, cause identified.**
-> A hardware test (2026-09-07) found the OEM `upload.cgi` rejects the upload at
-> **argument validation, before it ever looks at the file** — a 4 KB garbage file and
-> the real image are rejected identically. **The image's format is not the problem** —
-> the upload *request* is (likely the wrong auth context, or the CGI's "firmware"
-> argument is a filename/field this replay didn't match). We've since rebuilt the image
-> to match the officially-supported sibling WAX218's proven format exactly (see below),
-> which is correct regardless — but it does not, by itself, get past this block. Use the
-> reliable or SSH path for now; keep a serial cable ready if you try the easy path anyway.
+<!-- METHOD-B-STATUS: mechanism-proven-persistence-unit-blocked -->
+> 🧪 **Easy path (web upload): the HTTP mechanism now works — persistence needs a
+> second unit to confirm.** The earlier "rejected" result was a `product_id` header
+> mismatch, not a request-contract problem — the OEM's `upload.cgi` checks the image
+> against the *running* firmware's own SKU identity. Re-headed correctly, upload →
+> stage → flash-trigger all genuinely work over HTTP, no UART needed for that part. But
+> on the one test unit available, the resulting boot hangs on a reproducible bad NAND
+> block in the spare slot — a hardware issue on that unit, not the image or mechanism
+> (confirmed: two different image types failed at the identical block). Full findings:
+> [`reference/method-b-findings.md`](../reference/method-b-findings.md). Use the
+> reliable or SSH path for now; **if you try the easy path and it works cleanly on your
+> unit, please report it** — see the tracking issue linked from the README.
 
 | | 🟢 Reliable path (recommended) | 🔵 SSH path (no serial) | 🟡 Easy path |
 |---|---|---|---|
 | **How** | Serial cable + bootloader commands | `ubiformat` over stock SSH | Upload one file in the vendor web page |
 | **Tools needed** | A USB-to-serial (UART) adapter, ~$10, and opening the case | An SSH client; stock firmware reachable | Nothing — just a browser |
 | **Difficulty** | Moderate (copy-paste commands) | Moderate (copy-paste commands) | Easy |
-| **Proven?** | ✅ Yes, on real hardware | 🧪 Proven on the sibling WAX218; not yet on EWS377 | ❌ Blocked — see the status box above |
+| **Proven?** | ✅ Yes, on real hardware | 🧪 Proven on the sibling WAX218; not yet on EWS377 | 🧪 HTTP mechanism proven; persistence unconfirmed (see status box) |
 | **If it goes wrong** | You're already on serial — recover in place | You'll *need* a serial cable to recover | You'll *need* a serial cable to recover |
 | **Go to** | [Section 4](#4-reliable-path--serial-cable) | [Section 3b](#3b-ssh-path--from-stock-no-serial) | [Section 3](#3-easy-path--web-upload) |
 
@@ -85,10 +87,15 @@ get stock back byte-for-byte (Section 6).
 
 ## 3. Easy path — web upload
 
-> ⚠️ **Currently blocked** — re-read the status box in [Section 1](#1-pick-your-path)
-> first. The OEM upload page rejects the file at the request level, before it even
-> reads the content, so this path will most likely not work yet. Kept here for anyone
-> who wants to try / help debug it — keep a serial cable handy.
+> ⚠️ **Persistence not yet confirmed on any tested unit** — re-read the status box in
+> [Section 1](#1-pick-your-path) first. The upload/flash *mechanism* genuinely works;
+> if the OEM page rejects your file, it's most likely a `product_id` mismatch against
+> your device's *currently running* firmware (see the status box), not a broken path —
+> try a build headed for your unit's actual SKU. But even a successful upload+flash
+> hasn't yet produced a confirmed-persistent boot on the one unit tested (a hardware
+> issue specific to that unit, not the mechanism — see
+> [`reference/method-b-findings.md`](../reference/method-b-findings.md)). Keep a serial
+> cable handy, and please report your result either way.
 
 1. Make sure you're on stock EnGenius firmware and can reach its web interface.
 2. Download **`…-web-ui-factory.fit`** and **`SHA256SUMS`** from the
