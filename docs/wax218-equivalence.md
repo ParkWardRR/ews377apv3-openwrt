@@ -42,7 +42,7 @@ mounts the SMEM partition **labeled `rootfs`**), and `qcom,ath11k-calibration-va
 | Wi-Fi | ✅ same | 4×4:4 802.11ax dual-band, ath11k |
 | Bootloader contract | ✅ same | QCA u-boot, `bootcmd=bootipq`, **FIT `config@hk07`**, A/B via `active_fw` env |
 | Partition model | ✅ same | `qcom,smem-part`; OpenWrt mounts the SMEM `rootfs` label |
-| **LEDs** | ❌ differs | WAX218 drives LEDs through an **NXP 74HC164** shift register on SPI-GPIO (`kmod-gpio-nxp-74hc164`); EWS377 has a plain **RGB LED on GPIO 54/55/56** |
+| **LEDs** | ❌ differs | WAX218 drives 4 discrete LEDs through a **shift register on bit-banged SPI** (DT `fairchild,74hc595`, pkg `kmod-gpio-nxp-74hc164` + `kmod-spi-gpio`); EWS377 has a plain **RGB LED on GPIO 54/55/56** |
 | **Wi-Fi board data** | ❌ differs | EWS377 `qcom,board_id = 0x290` → `bdwlan.b290`; WAX218 ships its own `ipq-wifi-netgear_wax218` blob |
 | **Image gate** | ❌ differs | EnGenius stock gates the web-upload on a Senao `product_id` (EWS377AP v3 = `0x011a`); NETGEAR uses its own header |
 | **Stock SSH access** | ❌ differs | EnGenius: `root` on **port 8822**; NETGEAR: `admin` on port 22 |
@@ -126,7 +126,10 @@ ssh $SSHOPTS root@$AP 'fw_setenv active_fw 0 && reboot'
 The porting plan's "biggest shortcut" — *find an already-supported IPQ8072A 4×4 sibling
 and copy its `.dts` + `board-2.bin`* — resolves to exactly one device: **`netgear_wax218`**.
 Anyone building or debugging the EWS377 image should diff against the mainline
-`netgear_wax218` sources first:
+`netgear_wax218` sources first. A **decompiled copy of the shipping WAX218 device tree**
+is checked in at `reference/wax218-mainline-25.12.2.dts`, with a node-by-node comparison
+in `reference/wax218-vs-ews377-dts.md` (identical SoC/2.5G/`smem-part` plumbing; only
+LEDs, Wi-Fi caldata, and the image wrapper differ).
 
 - DTS: `target/linux/qualcommax/dts/ipq8072-wax218.dts` (or the `files-*/…/ipq8072-wax218.dts`)
 - Recipe: the `netgear_wax218` `Device/` block in `image/Makefile` — note

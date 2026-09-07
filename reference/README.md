@@ -13,6 +13,8 @@ config by default (model "Qualcomm IPQ807x/AP-HK07").
 | `wifi-board-data/bdwlan.bin.b210-default` | Default board data in the FIT image (== `bdwlan.b210`). |
 | `wifi-board-data/bdwlan.b290-ecw230v3` | **The EWS377AP v3 board data** (board id 0x290). |
 | `wifi-board-data/BUILD-board-2.bin.md` | How to turn `bdwlan.b290` into a mainline ath11k `board-2.bin`. |
+| `wax218-mainline-25.12.2.dts` | **Decompiled device tree from the official OpenWrt `netgear_wax218` image** (25.12.2) — the same `ap-hk07` board, our upstream template. Extracted from the FIT's FDT sub-image. |
+| `wax218-vs-ews377-dts.md` | Node-by-node diff: what to copy verbatim from mainline WAX218 vs the three EWS377 overrides (LEDs, Wi-Fi caldata, image wrapper). |
 
 ## What the two DTBs establish (cross-confirmed)
 
@@ -24,4 +26,9 @@ config by default (model "Qualcomm IPQ807x/AP-HK07").
 - **Ethernet:** 2.5G QCA8081 at MDIO 28 = ESS port 6 / uniphy2 (USXGMII); QCA8075 5×GbE on ports 1–5
   / uniphy0 (PSGMII) in the reference. Shipping `/etc/config/network` uses a single `lan=eth0`, so the
   AP exposes only the 2.5G uplink. MDIO pins mdc=gpio68/mdio=gpio69; PHY reset gpio43/44.
-- **RAM:** 512 MB (`MP_512`).
+- **RAM:** the OEM DTB template says 512 MB (`MP_512`), but a **live unit reports 1 GiB** at u-boot
+  (`bdinfo` DRAM len `0x40000000`) — RAM variants exist and qualcommax reads the real size from the
+  bootloader at runtime, so the DTB value is harmless. See `docs/hardware-reference.md`.
+- **Same board as the official OpenWrt NETGEAR WAX218** (`ap-hk07`): the mainline WAX218 DTS is
+  decompiled here as `wax218-mainline-25.12.2.dts`; see `wax218-vs-ews377-dts.md` and
+  `docs/wax218-equivalence.md`.
