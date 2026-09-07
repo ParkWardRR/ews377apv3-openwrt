@@ -43,4 +43,31 @@ the EWS377 has an **RGB status LED on SoC GPIO 54/55/56** (e.g. `red:status` / `
 / `blue:status`), not per-function `blue:*` LEDs. So reuse the `ucidef_set_led_netdev`
 (lan) + `ucidef_set_led_wlan` (phy0radio/phy1radio) structure, but point them at the
 EWS377's actual `gpio-leds` names, and keep phy0=5G / phy1=2.4G.
+
+## Finding 3 — ath11k caldata comes straight from ART, MAC included
+
+`/etc/hotplug.d/firmware/11-ath11k-caldata`:
+```
+"ath11k/IPQ8074/hw2.0/cal-ahb-c000000.wifi.bin")
+	case "$board" in
+	... netgear,wax218| ... )
+		caldata_extract "0:art" 0x1000 0x20000
+		;;
+```
+The WAX218 does a **plain `caldata_extract "0:art" 0x1000 0x20000`** and **no
+`ath11k_patch_mac`** — i.e. it trusts the per-radio MACs already embedded in the ART
+caldata (offset `0x1000`, length `0x20000` = 128 KiB) rather than deriving them from a
+label MAC. This is the simplest of all the family variants in that script (many NETGEAR/
+Linksys boards patch MACs from a label).
+
+**For the EWS377AP v3** this is the model to copy — the repo already establishes that
+ath11k caldata lives in **ART (mtd11)**. Two portability notes:
+- **Partition-label case:** WAX218 uses lowercase `"0:art"`; the EWS377 live `mtdparts`
+  shows the label as **`0:ART`** (see `docs/hardware-reference.md`). `caldata_extract`
+  matches the label literally, so the EWS377 script must use the exact case its SMEM
+  table exposes — verify on hardware before assuming `0:art`.
+- **MAC handling:** start with the WAX218's no-patch approach (`caldata_extract` only). If
+  the EWS377's radios come up with a wrong/duplicate MAC, add `ath11k_patch_mac` from the
+  ART/label MAC like the `netgear,wax620`/`wax630` cases do — but only if hardware shows
+  it's needed.
 </content>
