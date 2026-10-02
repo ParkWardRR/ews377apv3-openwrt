@@ -1,5 +1,9 @@
 # EnGenius EWS377AP v3 → OpenWrt
 
+<p align="center">
+  <img src="docs/screenshots/tui-dashboard.png" alt="EWS377AP TUI Dashboard — Tokyo Night theme" width="800">
+</p>
+
 The canonical home for running **mainline-style OpenWrt** on the EnGenius
 **EWS377AP v3** (Qualcomm **IPQ8072A**, board `ap-hk07`) — a 4×4 Wi-Fi 6 access
 point with a 2.5 GbE uplink. Built on the community **NSS-EDMA** OpenWrt tree
@@ -89,6 +93,19 @@ layout (visual hierarchy, progressive disclosure, spatial consistency).
 ```
 cd tui && zig build run
 ```
+
+<details>
+<summary><strong>View screenshots</strong> — Install Guide · Validation · Device Info · Releases</summary>
+
+| Install Guide | Validation |
+|---|---|
+| ![Install Guide](docs/screenshots/tui-install.png) | ![Validation](docs/screenshots/tui-validation.png) |
+
+| Device Info | Releases |
+|---|---|
+| ![Device Info](docs/screenshots/tui-device.png) | ![Releases](docs/screenshots/tui-releases.png) |
+
+</details>
 
 ## Source & related
 - **Source / build:** fork branch `ews377ap-v3` of

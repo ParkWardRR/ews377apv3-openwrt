@@ -626,6 +626,306 @@ fn renderStatusBar(w: *BufWriter, current: View, width: u16, height: u16) void {
 
 // ─── Main loop ───────────────────────────────────────────────────────────────
 
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
+fn testWriter() BufWriter {
+    const fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY }, @as(std.c.mode_t, 0));
+    return BufWriter{ .fd = fd };
+}
+
+test "BufWriter: out fills buffer" {
+    var w = testWriter();
+    w.out("hello");
+    try std.testing.expectEqual(@as(usize, 5), w.pos);
+}
+
+test "BufWriter: flush resets pos" {
+    var w = testWriter();
+    w.out("data");
+    try std.testing.expect(w.pos > 0);
+    w.flush();
+    try std.testing.expectEqual(@as(usize, 0), w.pos);
+}
+
+test "BufWriter: fmt formats correctly" {
+    var w = testWriter();
+    w.fmt("{d}+{d}={d}", .{ 1, 2, 3 });
+    try std.testing.expectEqual(@as(usize, 5), w.pos);
+    try std.testing.expectEqualStrings("1+2=3", w.buf[0..5]);
+}
+
+test "BufWriter: fgRgb emits ANSI escape" {
+    var w = testWriter();
+    w.fgRgb(.{ 0x7a, 0xa2, 0xf7 });
+    const expected = "\x1b[38;2;122;162;247m";
+    try std.testing.expectEqualStrings(expected, w.buf[0..w.pos]);
+}
+
+test "BufWriter: bgRgb emits ANSI escape" {
+    var w = testWriter();
+    w.bgRgb(.{ 0x1a, 0x1b, 0x26 });
+    const expected = "\x1b[48;2;26;27;38m";
+    try std.testing.expectEqualStrings(expected, w.buf[0..w.pos]);
+}
+
+test "BufWriter: bold emits correct sequence" {
+    var w = testWriter();
+    w.bold();
+    try std.testing.expectEqualStrings("\x1b[1m", w.buf[0..w.pos]);
+}
+
+test "BufWriter: dim emits correct sequence" {
+    var w = testWriter();
+    w.dim();
+    try std.testing.expectEqualStrings("\x1b[2m", w.buf[0..w.pos]);
+}
+
+test "BufWriter: italic emits correct sequence" {
+    var w = testWriter();
+    w.italic();
+    try std.testing.expectEqualStrings("\x1b[3m", w.buf[0..w.pos]);
+}
+
+test "BufWriter: reset emits correct sequence" {
+    var w = testWriter();
+    w.reset();
+    try std.testing.expectEqualStrings("\x1b[0m", w.buf[0..w.pos]);
+}
+
+test "BufWriter: moveTo emits cursor position" {
+    var w = testWriter();
+    w.moveTo(5, 10);
+    try std.testing.expectEqualStrings("\x1b[6;11H", w.buf[0..w.pos]);
+}
+
+test "BufWriter: clear emits erase + home" {
+    var w = testWriter();
+    w.clear();
+    try std.testing.expectEqualStrings("\x1b[2J\x1b[H", w.buf[0..w.pos]);
+}
+
+test "BufWriter: hideCursor emits correct sequence" {
+    var w = testWriter();
+    w.hideCursor();
+    try std.testing.expectEqualStrings("\x1b[?25l", w.buf[0..w.pos]);
+}
+
+test "BufWriter: showCursor emits correct sequence" {
+    var w = testWriter();
+    w.showCursor();
+    try std.testing.expectEqualStrings("\x1b[?25h", w.buf[0..w.pos]);
+}
+
+test "BufWriter: altScreen emits correct sequence" {
+    var w = testWriter();
+    w.altScreen();
+    try std.testing.expectEqualStrings("\x1b[?1049h", w.buf[0..w.pos]);
+}
+
+test "BufWriter: mainScreen emits correct sequence" {
+    var w = testWriter();
+    w.mainScreen();
+    try std.testing.expectEqualStrings("\x1b[?1049l", w.buf[0..w.pos]);
+}
+
+test "BufWriter: buffer overflow flushes automatically" {
+    var w = testWriter();
+    const chunk = "x" ** 100;
+    var i: usize = 0;
+    while (i < 200) : (i += 1) {
+        w.out(chunk);
+    }
+    try std.testing.expect(w.pos < w.buf.len);
+}
+
+test "View: label returns correct strings" {
+    try std.testing.expectEqualStrings("Dashboard", View.dashboard.label());
+    try std.testing.expectEqualStrings("Install Guide", View.install.label());
+    try std.testing.expectEqualStrings("Device Info", View.device.label());
+    try std.testing.expectEqualStrings("Validation", View.validation.label());
+    try std.testing.expectEqualStrings("Releases", View.releases.label());
+}
+
+test "View: num returns correct shortcut keys" {
+    try std.testing.expectEqualStrings("1", View.dashboard.num());
+    try std.testing.expectEqualStrings("2", View.install.num());
+    try std.testing.expectEqualStrings("3", View.device.num());
+    try std.testing.expectEqualStrings("4", View.validation.num());
+    try std.testing.expectEqualStrings("5", View.releases.num());
+}
+
+test "View: all_views has 5 entries" {
+    try std.testing.expectEqual(@as(usize, 5), all_views.len);
+}
+
+test "View: tab cycling wraps around" {
+    var current: View = .releases;
+    const idx = @intFromEnum(current);
+    current = @enumFromInt((idx + 1) % all_views.len);
+    try std.testing.expectEqual(View.dashboard, current);
+}
+
+test "View: tab cycling from dashboard" {
+    var current: View = .dashboard;
+    const idx = @intFromEnum(current);
+    current = @enumFromInt((idx + 1) % all_views.len);
+    try std.testing.expectEqual(View.install, current);
+}
+
+test "Tokyo Night: palette values are valid" {
+    inline for (.{ TN.bg_dark, TN.bg_float, TN.bg_hl, TN.fg_dim, TN.fg, TN.fg_bright, TN.blue, TN.magenta, TN.green, TN.red, TN.orange, TN.cyan, TN.yellow }) |color| {
+        try std.testing.expect(color[0] <= 255);
+        try std.testing.expect(color[1] <= 255);
+        try std.testing.expect(color[2] <= 255);
+    }
+}
+
+test "Tokyo Night: shimmer palette has 4 entries" {
+    try std.testing.expectEqual(@as(usize, 4), TN.shimmer.len);
+}
+
+test "renderDashboard: produces non-empty output" {
+    var w = testWriter();
+    renderDashboard(&w);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderInstall: produces non-empty output" {
+    var w = testWriter();
+    renderInstall(&w);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderDevice: produces non-empty output" {
+    var w = testWriter();
+    renderDevice(&w);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderValidation: produces non-empty output" {
+    var w = testWriter();
+    renderValidation(&w);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderReleases: produces non-empty output" {
+    var w = testWriter();
+    renderReleases(&w);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderHelp: produces non-empty output" {
+    var w = testWriter();
+    renderHelp(&w);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderWordmark: produces output with shimmer" {
+    var w = testWriter();
+    renderWordmark(&w, 0);
+    try std.testing.expect(w.pos > 100);
+}
+
+test "renderWordmark: different frames produce different output" {
+    var w1 = testWriter();
+    renderWordmark(&w1, 0);
+    const pos1 = w1.pos;
+    const snapshot1 = w1.buf[0..pos1];
+
+    var w2 = testWriter();
+    renderWordmark(&w2, 5);
+    const pos2 = w2.pos;
+    const snapshot2 = w2.buf[0..pos2];
+
+    var differs = false;
+    if (pos1 != pos2) {
+        differs = true;
+    } else {
+        for (snapshot1, snapshot2) |a, b| {
+            if (a != b) {
+                differs = true;
+                break;
+            }
+        }
+    }
+    try std.testing.expect(differs);
+}
+
+test "renderBadge: output contains label text" {
+    var w = testWriter();
+    renderBadge(&w, "PROVEN", TN.green);
+    const output = w.buf[0..w.pos];
+    try std.testing.expect(std.mem.indexOf(u8, output, "PROVEN") != null);
+}
+
+test "sectionHeader: output contains title text" {
+    var w = testWriter();
+    sectionHeader(&w, 0, 0, "Test Header");
+    const output = w.buf[0..w.pos];
+    try std.testing.expect(std.mem.indexOf(u8, output, "Test Header") != null);
+}
+
+test "renderTabBar: produces non-empty output" {
+    var w = testWriter();
+    renderTabBar(&w, .dashboard, 80);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderStatusBar: produces non-empty output" {
+    var w = testWriter();
+    renderStatusBar(&w, .dashboard, 80, 24);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderStatusBar: handles narrow width" {
+    var w = testWriter();
+    renderStatusBar(&w, .dashboard, 10, 5);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderStatusBar: handles zero dimensions" {
+    var w = testWriter();
+    renderStatusBar(&w, .dashboard, 0, 0);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderTabBar: handles very narrow width" {
+    var w = testWriter();
+    renderTabBar(&w, .validation, 1);
+    try std.testing.expect(w.pos > 0);
+}
+
+test "renderWordmark: handles max frame counter" {
+    var w = testWriter();
+    renderWordmark(&w, std.math.maxInt(u32));
+    try std.testing.expect(w.pos > 0);
+}
+
+test "getTermSize: returns non-panic values" {
+    const sz = getTermSize();
+    _ = sz.w;
+    _ = sz.h;
+}
+
+test "Key enum: all variants exist" {
+    const keys = [_]Key{ .quit, .up, .down, .left, .right, .enter, .tab, .n1, .n2, .n3, .n4, .n5, .help, .escape, .none };
+    try std.testing.expectEqual(@as(usize, 15), keys.len);
+}
+
+test "BufWriter: sequential operations compose correctly" {
+    var w = testWriter();
+    w.bold();
+    w.fgRgb(TN.blue);
+    w.out("test");
+    w.reset();
+    const output = w.buf[0..w.pos];
+    try std.testing.expect(std.mem.indexOf(u8, output, "test") != null);
+    try std.testing.expect(std.mem.indexOf(u8, output, "\x1b[1m") != null);
+    try std.testing.expect(std.mem.indexOf(u8, output, "\x1b[0m") != null);
+}
+
+// ─── Entry point ─────────────────────────────────────────────────────────────
+
 pub fn main() !void {
     const fd = posix.STDIN_FILENO;
     const orig = try enableRaw(fd);
