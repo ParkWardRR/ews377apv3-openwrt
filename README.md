@@ -19,7 +19,7 @@ kernel 6.18.
 
 ## ⬇️ Downloads
 
-Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** (tag `v0.2`).
+Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** — firmware `v0.2`, TUI `v0.3`.
 
 | File | Use | Status |
 | --- | --- | --- |
