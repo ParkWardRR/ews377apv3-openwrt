@@ -247,7 +247,48 @@ OpenWrt commit, toolchain, and vendor-firmware-input hashes used to build each r
 board-data package's source/redistribution terms are acceptable for a mainline
 submission, not just a downstream fork.
 
-## 6. Legal / licensing — open, not resolved
+## 6. Interactive TUI — Zig terminal dashboard
+
+A terminal UI for guided installs, live device status, and NAND health checks,
+built in Zig — zero runtime dependencies, single static binary, direct ANSI
+terminal control.
+
+**Design pillars:**
+
+- **Tokyo Night palette** — dark background (`#1a1b26`), muted foreground
+  (`#a9b1d6`), accent blue (`#7aa2f7`), accent magenta (`#bb9af7`), green
+  (`#9ece6a`), red (`#f7768e`), orange (`#ff9e64`), cyan (`#7dcfff`).
+- **Neon shimmer wordmark** — animated gradient title using the accent spectrum,
+  subtle glow effect on the project name at launch.
+- **Apple HIG-informed layout** — adapted for a terminal context:
+  - **Visual hierarchy:** bold/color for primary, muted for secondary, dim for
+    tertiary. No gratuitous color — every hue carries meaning.
+  - **Progressive disclosure:** top-level dashboard → drill into install guides,
+    device details, or validation status.
+  - **Spatial consistency:** fixed gutter, aligned columns, predictable padding.
+  - **Feedback:** spinner/progress for async ops, inline status badges, clear
+    error states with actionable next steps.
+  - **Navigation:** vim-style (`j`/`k`/`h`/`l`) + arrows + tab, breadcrumb
+    trail showing current depth.
+  - **Accessibility:** WCAG-informed contrast (Tokyo Night already passes on
+    dark terminals), no information conveyed by color alone.
+
+**TUI views (initial scope):**
+
+| View | Purpose |
+|---|---|
+| Dashboard | SKU status matrix (EWS377AP v3 / ECW230v3 / EWS377-FIT), install method readiness, release info |
+| Install Guide | Interactive walk-through of the three install paths (UART, SSH, web), with live safety checks |
+| Device Info | Hardware reference card — SoC, RAM, NAND, radios, GPIOs, MTD map |
+| Validation | §4 checklist rendered live — what's proven, what's open, what needs hardware |
+| Releases | Current release artifacts, SHA256 sums, artifact state model (persistent vs. temporary) |
+
+**Phasing:** the TUI ships alongside the firmware — it is a companion tool, not a
+gate. Phase 1 (static views, no device interaction) ships first; Phase 2 (live
+SSH-based device queries, NAND health reads) follows once the install paths are
+hardware-proven.
+
+## 7. Legal / licensing — open, not resolved
 
 Flagging honestly rather than ignoring: this project decodes and repackages vendor FIT
 images (Qualcomm QSDK-derived, via EnGenius/NETGEAR) and redistributes derived
@@ -266,7 +307,7 @@ answered** and should be before any wider release or an upstream PR:
   personal/research use on hardware you own, but worth knowing before recommending it
   broadly.
 
-## 7. Non-negotiables (carried over from the rest of this repo)
+## 8. Non-negotiables (carried over from the rest of this repo)
 
 - Never write the ART partition or the bootloader region (`0x0`–`0x1000000`) on any SKU.
 - Every new SKU gets its own byte-exact stock backup before any NAND write.

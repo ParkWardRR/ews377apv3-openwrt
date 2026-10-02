@@ -79,6 +79,17 @@ EnGenius u-boot:
 - **LEDs:** RGB status on GPIO 54/55/56. **Reset:** GPIO 52. **UART:** header **J2**, 115200 8N1.
 - **Boot:** QCA u-boot 2.0.0, `bootcmd=bootipq`, dual A/B slots (`active_fw`).
 
+## TUI — interactive terminal dashboard
+
+A Zig-native terminal UI ships in [`tui/`](tui/) for guided installs, device
+status at a glance, and NAND health checks — zero dependencies, single static
+binary. Tokyo Night palette, neon shimmer wordmark, and Apple HIG-informed
+layout (visual hierarchy, progressive disclosure, spatial consistency).
+
+```
+cd tui && zig build run
+```
+
 ## Source & related
 - **Source / build:** fork branch `ews377ap-v3` of
   [`openwrt-nss-edma`](https://github.com/ParkWardRR/openwrt-nss-edma) — full
@@ -90,7 +101,7 @@ EnGenius u-boot:
 | File | Purpose |
 | --- | --- |
 | [docs/install-and-restore.md](docs/install-and-restore.md) | Install OpenWrt + restore to stock (serial / SSH / web paths) |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Plan: staying WAX218-aligned + extending support to ECW230v3 and EWS377-FIT (same hardware, 3 vendor headers) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Plan: staying WAX218-aligned + extending support to ECW230v3 and EWS377-FIT (same hardware, 3 vendor headers), plus TUI tooling |
 | [docs/wax218-equivalence.md](docs/wax218-equivalence.md) | Same board as the official OpenWrt NETGEAR WAX218 — shared/differing traits + borrowed SSH install method |
 | [docs/hardware-reference.md](docs/hardware-reference.md) | MTD map, boot chain, u-boot env, recovery |
 | [docs/openwrt-porting-plan.md](docs/openwrt-porting-plan.md) | End-to-end port plan (with outcomes) |
