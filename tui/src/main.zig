@@ -4,32 +4,32 @@ const builtin = @import("builtin");
 
 // ─── Tokyo Night palette ─────────────────────────────────────────────────────
 
-const TN = struct {
-    const bg_dark: [3]u8 = .{ 0x1a, 0x1b, 0x26 };
-    const bg_float: [3]u8 = .{ 0x24, 0x28, 0x3b };
-    const bg_hl: [3]u8 = .{ 0x29, 0x2e, 0x42 };
-    const fg_dim: [3]u8 = .{ 0x56, 0x5f, 0x89 };
-    const fg: [3]u8 = .{ 0xa9, 0xb1, 0xd6 };
-    const fg_bright: [3]u8 = .{ 0xc0, 0xca, 0xf5 };
-    const blue: [3]u8 = .{ 0x7a, 0xa2, 0xf7 };
-    const magenta: [3]u8 = .{ 0xbb, 0x9a, 0xf7 };
-    const green: [3]u8 = .{ 0x9e, 0xce, 0x6a };
-    const red: [3]u8 = .{ 0xf7, 0x76, 0x8e };
-    const orange: [3]u8 = .{ 0xff, 0x9e, 0x64 };
-    const cyan: [3]u8 = .{ 0x7d, 0xcf, 0xff };
-    const yellow: [3]u8 = .{ 0xe0, 0xaf, 0x68 };
+pub const TN = struct {
+    pub const bg_dark: [3]u8 = .{ 0x1a, 0x1b, 0x26 };
+    pub const bg_float: [3]u8 = .{ 0x24, 0x28, 0x3b };
+    pub const bg_hl: [3]u8 = .{ 0x29, 0x2e, 0x42 };
+    pub const fg_dim: [3]u8 = .{ 0x56, 0x5f, 0x89 };
+    pub const fg: [3]u8 = .{ 0xa9, 0xb1, 0xd6 };
+    pub const fg_bright: [3]u8 = .{ 0xc0, 0xca, 0xf5 };
+    pub const blue: [3]u8 = .{ 0x7a, 0xa2, 0xf7 };
+    pub const magenta: [3]u8 = .{ 0xbb, 0x9a, 0xf7 };
+    pub const green: [3]u8 = .{ 0x9e, 0xce, 0x6a };
+    pub const red: [3]u8 = .{ 0xf7, 0x76, 0x8e };
+    pub const orange: [3]u8 = .{ 0xff, 0x9e, 0x64 };
+    pub const cyan: [3]u8 = .{ 0x7d, 0xcf, 0xff };
+    pub const yellow: [3]u8 = .{ 0xe0, 0xaf, 0x68 };
 
-    const shimmer = [_][3]u8{ blue, cyan, magenta, blue };
+    pub const shimmer = [_][3]u8{ blue, cyan, magenta, blue };
 };
 
 // ─── Buffered terminal output ────────────────────────────────────────────────
 
-const BufWriter = struct {
+pub const BufWriter = struct {
     buf: [16384]u8 = undefined,
     pos: usize = 0,
     fd: posix.fd_t,
 
-    fn out(self: *BufWriter, data: []const u8) void {
+    pub fn out(self: *BufWriter, data: []const u8) void {
         for (data) |b| {
             if (self.pos >= self.buf.len) self.flush();
             self.buf[self.pos] = b;
@@ -37,63 +37,63 @@ const BufWriter = struct {
         }
     }
 
-    fn flush(self: *BufWriter) void {
+    pub fn flush(self: *BufWriter) void {
         if (self.pos == 0) return;
         _ = std.c.write(self.fd, self.buf[0..self.pos].ptr, self.pos);
         self.pos = 0;
     }
 
-    fn fmt(self: *BufWriter, comptime f: []const u8, args: anytype) void {
+    pub fn fmt(self: *BufWriter, comptime f: []const u8, args: anytype) void {
         var tmp: [512]u8 = undefined;
         const slice = std.fmt.bufPrint(&tmp, f, args) catch return;
         self.out(slice);
     }
 
-    fn fgRgb(self: *BufWriter, c: [3]u8) void {
+    pub fn fgRgb(self: *BufWriter, c: [3]u8) void {
         self.fmt("\x1b[38;2;{d};{d};{d}m", .{ c[0], c[1], c[2] });
     }
 
-    fn bgRgb(self: *BufWriter, c: [3]u8) void {
+    pub fn bgRgb(self: *BufWriter, c: [3]u8) void {
         self.fmt("\x1b[48;2;{d};{d};{d}m", .{ c[0], c[1], c[2] });
     }
 
-    fn bold(self: *BufWriter) void {
+    pub fn bold(self: *BufWriter) void {
         self.out("\x1b[1m");
     }
 
-    fn dim(self: *BufWriter) void {
+    pub fn dim(self: *BufWriter) void {
         self.out("\x1b[2m");
     }
 
-    fn italic(self: *BufWriter) void {
+    pub fn italic(self: *BufWriter) void {
         self.out("\x1b[3m");
     }
 
-    fn reset(self: *BufWriter) void {
+    pub fn reset(self: *BufWriter) void {
         self.out("\x1b[0m");
     }
 
-    fn moveTo(self: *BufWriter, row: u16, col: u16) void {
+    pub fn moveTo(self: *BufWriter, row: u16, col: u16) void {
         self.fmt("\x1b[{d};{d}H", .{ row + 1, col + 1 });
     }
 
-    fn clear(self: *BufWriter) void {
+    pub fn clear(self: *BufWriter) void {
         self.out("\x1b[2J\x1b[H");
     }
 
-    fn hideCursor(self: *BufWriter) void {
+    pub fn hideCursor(self: *BufWriter) void {
         self.out("\x1b[?25l");
     }
 
-    fn showCursor(self: *BufWriter) void {
+    pub fn showCursor(self: *BufWriter) void {
         self.out("\x1b[?25h");
     }
 
-    fn altScreen(self: *BufWriter) void {
+    pub fn altScreen(self: *BufWriter) void {
         self.out("\x1b[?1049h");
     }
 
-    fn mainScreen(self: *BufWriter) void {
+    pub fn mainScreen(self: *BufWriter) void {
         self.out("\x1b[?1049l");
     }
 };
@@ -127,7 +127,7 @@ fn disableRaw(fd: posix.fd_t, orig: posix.termios) void {
 
 // ─── Input ───────────────────────────────────────────────────────────────────
 
-const Key = enum { quit, up, down, left, right, enter, tab, n1, n2, n3, n4, n5, help, escape, none };
+pub const Key = enum { quit, up, down, left, right, enter, tab, n1, n2, n3, n4, n5, help, escape, none };
 
 fn readKey() Key {
     var buf: [8]u8 = undefined;
@@ -166,14 +166,14 @@ fn readKey() Key {
 
 // ─── Views ───────────────────────────────────────────────────────────────────
 
-const View = enum {
+pub const View = enum {
     dashboard,
     install,
     device,
     validation,
     releases,
 
-    fn label(self: View) []const u8 {
+    pub fn label(self: View) []const u8 {
         return switch (self) {
             .dashboard => "Dashboard",
             .install => "Install Guide",
@@ -183,7 +183,7 @@ const View = enum {
         };
     }
 
-    fn num(self: View) []const u8 {
+    pub fn num(self: View) []const u8 {
         return switch (self) {
             .dashboard => "1",
             .install => "2",
@@ -194,11 +194,11 @@ const View = enum {
     }
 };
 
-const all_views = [_]View{ .dashboard, .install, .device, .validation, .releases };
+pub const all_views = [_]View{ .dashboard, .install, .device, .validation, .releases };
 
 // ─── Rendering ───────────────────────────────────────────────────────────────
 
-fn renderWordmark(w: *BufWriter, frame: u32) void {
+pub fn renderWordmark(w: *BufWriter, frame: u32) void {
     const art = [_][]const u8{
         "  ______  _    _  _____ ____  ______ ______          _____  ",
         " |  ____|| |  | |/ ____|___ \\|____  |____  |   /\\   |  __ \\ ",
@@ -227,7 +227,7 @@ fn renderWordmark(w: *BufWriter, frame: u32) void {
     w.reset();
 }
 
-fn renderTabBar(w: *BufWriter, current: View, width: u16) void {
+pub fn renderTabBar(w: *BufWriter, current: View, width: u16) void {
     const row: u16 = 10;
 
     w.moveTo(row, 0);
@@ -257,7 +257,7 @@ fn renderTabBar(w: *BufWriter, current: View, width: u16) void {
     w.reset();
 }
 
-fn renderBadge(w: *BufWriter, label: []const u8, color: [3]u8) void {
+pub fn renderBadge(w: *BufWriter, label: []const u8, color: [3]u8) void {
     w.bgRgb(color);
     w.fgRgb(TN.bg_dark);
     w.bold();
@@ -265,7 +265,7 @@ fn renderBadge(w: *BufWriter, label: []const u8, color: [3]u8) void {
     w.reset();
 }
 
-fn sectionHeader(w: *BufWriter, row: u16, col: u16, title: []const u8) void {
+pub fn sectionHeader(w: *BufWriter, row: u16, col: u16, title: []const u8) void {
     w.moveTo(row, col);
     w.fgRgb(TN.blue);
     w.bold();
@@ -273,7 +273,7 @@ fn sectionHeader(w: *BufWriter, row: u16, col: u16, title: []const u8) void {
     w.reset();
 }
 
-fn renderDashboard(w: *BufWriter) void {
+pub fn renderDashboard(w: *BufWriter) void {
     const top: u16 = 14;
     const pad: u16 = 3;
 
@@ -338,7 +338,7 @@ fn renderDashboard(w: *BufWriter) void {
     w.reset();
 }
 
-fn renderInstall(w: *BufWriter) void {
+pub fn renderInstall(w: *BufWriter) void {
     const top: u16 = 14;
     const pad: u16 = 3;
 
@@ -413,7 +413,7 @@ fn renderInstall(w: *BufWriter) void {
     w.reset();
 }
 
-fn renderDevice(w: *BufWriter) void {
+pub fn renderDevice(w: *BufWriter) void {
     const top: u16 = 14;
     const pad: u16 = 3;
 
@@ -464,7 +464,7 @@ fn renderDevice(w: *BufWriter) void {
     w.reset();
 }
 
-fn renderValidation(w: *BufWriter) void {
+pub fn renderValidation(w: *BufWriter) void {
     const top: u16 = 14;
     const pad: u16 = 3;
 
@@ -520,7 +520,7 @@ fn renderValidation(w: *BufWriter) void {
     w.reset();
 }
 
-fn renderReleases(w: *BufWriter) void {
+pub fn renderReleases(w: *BufWriter) void {
     const top: u16 = 14;
     const pad: u16 = 3;
 
@@ -558,7 +558,7 @@ fn renderReleases(w: *BufWriter) void {
     w.reset();
 }
 
-fn renderHelp(w: *BufWriter) void {
+pub fn renderHelp(w: *BufWriter) void {
     const top: u16 = 14;
     const pad: u16 = 3;
 
@@ -584,7 +584,7 @@ fn renderHelp(w: *BufWriter) void {
     w.reset();
 }
 
-fn renderStatusBar(w: *BufWriter, current: View, width: u16, height: u16) void {
+pub fn renderStatusBar(w: *BufWriter, current: View, width: u16, height: u16) void {
     const row = height -| 1;
     w.moveTo(row, 0);
     w.bgRgb(TN.bg_float);
