@@ -1,21 +1,37 @@
-# EnGenius EWS377AP v3 → OpenWrt
+# EnGenius EWS377AP v3 / ECW230v3 / EWS377-FIT → OpenWrt
 
 <p align="center">
   <img src="docs/screenshots/tui-dashboard.png" alt="EWS377AP TUI Dashboard — Tokyo Night theme" width="800">
 </p>
 
 The canonical home for running **mainline-style OpenWrt** on the EnGenius
-**EWS377AP v3** (Qualcomm **IPQ8072A**, board `ap-hk07`) — a 4×4 Wi-Fi 6 access
-point with a 2.5 GbE uplink. Built on the community **NSS-EDMA** OpenWrt tree
-(Qualcomm NSS hardware offload on top of the upstream `qca_edma`/`qca_ppe` stack),
-kernel 6.18.
+`ap-hk07` family (Qualcomm **IPQ8072A**) — 4×4 Wi-Fi 6 access points with a
+2.5 GbE uplink. Built on the community **NSS-EDMA** OpenWrt tree (Qualcomm NSS
+hardware offload on top of the upstream `qca_edma`/`qca_ppe` stack), kernel 6.18.
 
-> ## ✅ Status: validated on hardware
-> OpenWrt boots and runs **persistently from NAND** on a real unit: `bootipq` →
-> FIT `config@hk07` → kernel → UBI root mount → squashfs + `rootfs_data` overlay →
-> shell, surviving real reboots. **Ethernet**, **both Wi-Fi radios (WPA2)**, and
-> **config persistence** confirmed. Secure boot is **not fused** (custom images
-> boot). Unofficial / community; prerelease.
+### Supported models
+
+| Model | Product ID | Management | Status |
+|---|---|---|---|
+| **EWS377AP v3** | `0x011a` (282) | Controller-managed (EWS) | **Hardware-proven** — boots and persists from NAND |
+| **ECW230v3** | `0x011c` (284) | Cloud-managed (ECW) | **DTS-validated** — identical hardware, awaiting hardware test |
+| **EWS377-FIT** | `0x012c` (300) | Standalone (FIT) | **DTS-validated** — identical hardware, awaiting hardware test |
+
+All three share the same silicon, same DTS properties (LEDs, reset GPIO, WiFi
+board data, Ethernet PHY wiring), and the same `config@hk07` boot contract — they
+differ only in their Senao firmware header fields. See
+[`reference/model-differences.md`](reference/model-differences.md) for the full
+comparison. The **NETGEAR WAX218 v1** is the same `ap-hk07` board and is
+[officially supported by OpenWrt](docs/wax218-equivalence.md).
+
+> ## ✅ Status: validated on hardware (EWS377AP v3)
+> OpenWrt boots and runs **persistently from NAND** on a real EWS377AP v3 unit:
+> `bootipq` → FIT `config@hk07` → kernel → UBI root mount → squashfs +
+> `rootfs_data` overlay → shell, surviving real reboots. **Ethernet**, **both
+> Wi-Fi radios (WPA2)**, and **config persistence** confirmed. Secure boot is
+> **not fused** (custom images boot). ECW230v3 and EWS377-FIT are DTS-validated
+> (identical hardware confirmed) but awaiting hardware testing. Unofficial /
+> community; prerelease.
 
 ## ⬇️ Downloads
 
@@ -72,10 +88,10 @@ EnGenius u-boot:
    partition labeled `rootfs` (slot 0, `0x1000000`), regardless of which A/B slot the
    bootloader loaded from — so OpenWrt must live on slot 0.
 
-## Hardware at a glance
+## Hardware at a glance (shared across all three models)
 - **SoC:** Qualcomm IPQ8072A (quad Cortex-A53), 1 GiB RAM (confirmed live; some
   variants report 512 MB), 256 MB NAND. **Same `ap-hk07` reference board** as the
-  ECW230v3, EWS377-FIT, and the **officially-supported NETGEAR WAX218 v1** — see
+  **officially-supported NETGEAR WAX218 v1** — see
   [docs/wax218-equivalence.md](docs/wax218-equivalence.md).
 - **Wi-Fi:** 4×4 802.11ax dual-band (ath11k), caldata from ART.
 - **Ethernet:** single 2.5 GbE `lan` uplink (QCA8081 @ MDIO 28, `2500base-x` via
@@ -118,7 +134,7 @@ cd tui && zig build run
 | File | Purpose |
 | --- | --- |
 | [docs/install-and-restore.md](docs/install-and-restore.md) | Install OpenWrt + restore to stock (serial / SSH / web paths) |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Plan: staying WAX218-aligned + extending support to ECW230v3 and EWS377-FIT (same hardware, 3 vendor headers), plus TUI tooling |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Plan: staying WAX218-aligned + all three models (EWS377AP v3, ECW230v3, EWS377-FIT — same hardware, 3 vendor headers), plus TUI tooling |
 | [docs/wax218-equivalence.md](docs/wax218-equivalence.md) | Same board as the official OpenWrt NETGEAR WAX218 — shared/differing traits + borrowed SSH install method |
 | [docs/hardware-reference.md](docs/hardware-reference.md) | MTD map, boot chain, u-boot env, recovery |
 | [docs/openwrt-porting-plan.md](docs/openwrt-porting-plan.md) | End-to-end port plan (with outcomes) |
@@ -136,6 +152,7 @@ cd tui && zig build run
   the bootloader are intact.
 
 ## Scope
-Unofficial community work for interoperability and self-hosting on hardware you own.
-"EnGenius"/"Senao" are trademarks of their owners; no affiliation or endorsement. No
-vendor firmware is redistributed here. No warranty — use at your own risk.
+Unofficial community work for interoperability and self-hosting on hardware you own
+(EWS377AP v3, ECW230v3, EWS377-FIT). "EnGenius"/"Senao" are trademarks of their
+owners; no affiliation or endorsement. No vendor firmware is redistributed here. No
+warranty — use at your own risk.

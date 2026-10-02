@@ -3,8 +3,20 @@
 Two goals, one plan: (1) keep this project as close as possible to the officially
 mainline-supported **NETGEAR WAX218** — same board, proven recipe, easiest upstream
 path — and (2) extend OpenWrt support from just the **EWS377AP v3** to all three
-EnGenius SKUs built on this hardware: **EWS377AP v3**, **ECW230v3**, and
-**EWS377-FIT**.
+EnGenius SKUs built on this hardware.
+
+### Supported models
+
+| Model | Product ID | Senao Header `model` | Management Mode | Status |
+|---|---|---|---|---|
+| **EWS377AP v3** | `0x011a` (282) | `EWS377APv3` | Controller-managed (EWS) | **Hardware-proven** |
+| **ECW230v3** | `0x011c` (284) | `ECW230v3` | Cloud-managed (ECW) | **DTS-validated** |
+| **EWS377-FIT** | `0x012c` (300) | `EWS377-FIT` | Standalone (FIT) | **DTS-validated** |
+
+All three share `vendor_id=0x0101`, identical silicon (IPQ8072A, `ap-hk07`),
+identical DTS properties (LEDs, reset GPIO, WiFi board data `0x290`, 2.5G PHY),
+and the same `config@hk07` boot contract. They differ **only** in firmware header
+fields. See [`reference/model-differences.md`](../reference/model-differences.md).
 
 ## 0. Validated foundation (checked against real firmware, 2026-09-07)
 
@@ -161,7 +173,12 @@ must state which row an artifact is, not just link the file.
       **open, community help wanted**: [issue #1](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
 - [ ] Hardware-test SSH + `ubiformat` (already documented) on at least one unit before
       calling it proven — currently mirrored from WAX218 but untested on any EnGenius SKU.
-      **Still open — needs hardware.**
+      **Still open — needs hardware.** Note: ECW230v3 cloud firmware is confirmed to have
+      root SSH on port 8822 and all prerequisites present; the install guide now includes
+      ECW230v3-specific MTD layout notes (partition labels are swapped vs. EWS firmware —
+      target by offset `0x1000000`, not label). This is the **recommended path for
+      ECW230v3 units** over the web upload, because it bypasses the OEM's spare-slot
+      targeting and the `product_id` header gate entirely.
 - [ ] **Capture the live boot/flash state machine per SKU** — full `/proc/mtd`,
       `ubinfo -a`, `fw_printenv`, and a NAND bad-block map, from a live unit, for every
       state (stock / temporary OpenWrt / persistent OpenWrt / post-sysupgrade). Don't
