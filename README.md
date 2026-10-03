@@ -207,6 +207,7 @@ timeline
 | **[Model differences](reference/model-differences.md)** | EWS377AP v3 vs. ECW230v3 vs. EWS377-FIT — what's identical, what differs |
 | **[Web upload findings](reference/method-b-findings.md)** | OEM `upload.cgi` reverse engineering — how the one-click install works |
 | **[Porting plan](docs/openwrt-porting-plan.md)** | End-to-end port plan with outcomes |
+| **[Community landscape](docs/community-landscape.md)** | Where this project sits vs. other OpenWrt efforts, forum threads, what's missing |
 | **[Research notes](docs/research-notes.md)** | Community findings, secure-boot priors, prior art |
 | **[reference/](reference/)** | Decompiled OEM device trees + Wi-Fi board data |
 | **[ELI5 Guide](docs/wiki/ELI5-Guide.md)** | Plain-English explainer — what this is, who it's for, glossary |
