@@ -22,7 +22,7 @@
 
 <br/>
 
-**[Install Guide](docs/install-and-restore.md)** · **[Downloads](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** · **[Roadmap](docs/ROADMAP.md)** · **[Wiki](https://github.com/ParkWardRR/ews377apv3-openwrt/wiki)** · **[Report Issue](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/new)**
+**[Install Guide](docs/install-and-restore.md)** · **[Downloads](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** · **[Roadmap](docs/ROADMAP.md)** · **[ELI5 Guide](docs/wiki/ELI5-Guide.md)** · **[FAQ](docs/wiki/FAQ.md)** · **[Report Issue](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/new)**
 
 </div>
 
@@ -209,6 +209,9 @@ timeline
 | **[Porting plan](docs/openwrt-porting-plan.md)** | End-to-end port plan with outcomes |
 | **[Research notes](docs/research-notes.md)** | Community findings, secure-boot priors, prior art |
 | **[reference/](reference/)** | Decompiled OEM device trees + Wi-Fi board data |
+| **[ELI5 Guide](docs/wiki/ELI5-Guide.md)** | Plain-English explainer — what this is, who it's for, glossary |
+| **[Quick Start](docs/wiki/Quick-Start.md)** | Shortest path from stock to OpenWrt |
+| **[FAQ](docs/wiki/FAQ.md)** | Common questions — models, install, troubleshooting |
 
 ## Source & related projects
 
