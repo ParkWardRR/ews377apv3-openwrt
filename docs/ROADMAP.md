@@ -49,7 +49,7 @@ sysupgrade behavior across units — those are separate, still-open items (§4).
    `0x1000000`) — matches both WAX218 and the OEM's own installer.
 3. **Same web-artifact construction.** `web-ui-factory.fit` = a kernel-only UBI built
    from the **initramfs** image via `ubinize-kernel | qsdk-ipq-factory-nand` — already
-   done for EWS377AP v3 ([`v0.2`](https://github.com/ParkWardRR/ews377apv3-openwrt/releases/tag/v0.2),
+   done for EWS377AP v3 ([`v0.2`](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases/tag/v0.2),
    verified structurally identical to the real upstream artifact). This is the one part
    that's **shared across all three SKUs** — see §3.
 4. **Same no-UART install method.** SSH + `ubiformat`, mirroring WAX218's documented
@@ -170,7 +170,7 @@ must state which row an artifact is, not just link the file.
       the resulting boot has not yet persisted on the one unit available, due to a
       unit-specific bad NAND block, not the mechanism or image. Needs a different unit
       to isolate unit-specific hardware from anything systemic. Tracked publicly —
-      **open, community help wanted**: [issue #1](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
+      **open, community help wanted**: [issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/1).
 - [ ] Hardware-test SSH + `ubiformat` (already documented) on at least one unit before
       calling it proven — currently mirrored from WAX218 but untested on any EnGenius SKU.
       **Still open — needs hardware.** Note: ECW230v3 cloud firmware is confirmed to have
@@ -213,7 +213,7 @@ hasn't yet persisted on the one unit available — a reproducible bad NAND block
 unit's spare slot, confirmed independent of image format. What's left is **not**
 reverse-engineering, it's **community validation**: someone with a second unit
 re-heading the current release image and confirming (or refuting) a clean, persistent
-boot. Tracked as [issue #1](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
+boot. Tracked as [issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/1).
 
 **Phase 3 — Extend the device recipe: shared base DTS, one profile per SKU.** §4
 confirmed the DTS *properties* are identical across all three, so this is recipe-only —

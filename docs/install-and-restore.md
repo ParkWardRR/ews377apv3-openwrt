@@ -99,7 +99,7 @@ get stock back byte-for-byte (Section 6).
 
 1. Make sure you're on stock EnGenius firmware and can reach its web interface.
 2. Download **`…-web-ui-factory.fit`** and **`SHA256SUMS`** from the
-   [release](https://github.com/ParkWardRR/ews377apv3-openwrt/releases), and check it:
+   [release](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases), and check it:
    ```
    sha256sum -c SHA256SUMS --ignore-missing
    ```
@@ -196,7 +196,7 @@ the downloaded images in its serving folder. Note your PC's IP.
 
 ### 4.3 Download + verify the image
 Grab **`…-squashfs-factory.ubi`** and **`SHA256SUMS`** from the
-[release](https://github.com/ParkWardRR/ews377apv3-openwrt/releases):
+[release](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases):
 ```
 sha256sum -c SHA256SUMS --ignore-missing   # must print: ...factory.ubi: OK
 ```
