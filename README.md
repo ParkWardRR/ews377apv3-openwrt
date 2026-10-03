@@ -74,6 +74,24 @@ Firmware images + `SHA256SUMS` → **[Releases](https://github.com/ParkWardRR/op
 | `…-initramfs-uImage.itb` | RAM boot — dry-run / recovery, nothing written to NAND | **Proven** |
 | `…-squashfs-sysupgrade.bin` | Upgrade once already running OpenWrt | Standard |
 | `…-web-ui-factory.fit` | OEM web GUI one-click install (same build method as mainline WAX218) | **Experimental** — [details below](#web-upload-status) |
+| `…-senao-factory.bin` | Per-SKU Senao-wrapped image for **all** EnGenius web UIs (ezMaster, Cloud, FIT controller) | **New** — [details below](#senao-factory-images) |
+
+### Senao factory images
+
+Each EnGenius management interface (standalone web UI, ezMaster, FIT controller,
+EnGenius Cloud) validates a Senao firmware header before accepting an upload. The
+build now produces per-SKU `senao-factory.bin` images with the correct
+`product_id` and XOR encryption so each SKU's own GUI accepts them:
+
+| SKU | `product_id` | Management interface |
+|---|---|---|
+| EWS377AP v3 | `0x011a` | Standalone web UI / ezMaster |
+| ECW230v3 | `0x011c` | EnGenius Cloud |
+| EWS377-FIT | `0x012c` | FIT controller |
+
+These use firmware type 2 (kernel), matching the format of all other OpenWrt Senao
+devices. The underlying payload is the same WAX218-style kernel-only UBI built from
+the initramfs image.
 
 ### Web upload status
 
@@ -198,6 +216,7 @@ timeline
 | **[Porting plan](docs/openwrt-porting-plan.md)** | End-to-end port plan with outcomes |
 | **[Community landscape](docs/community-landscape.md)** | Where this project sits vs. other OpenWrt efforts, forum threads, what's missing |
 | **[Research notes](docs/research-notes.md)** | Community findings, secure-boot priors, prior art |
+| **[Senao factory recipe](reference/senao-factory-recipe.md)** | Build recipe for per-SKU `senao-factory.bin` (ezMaster, Cloud, FIT controller) |
 | **[reference/](reference/)** | Decompiled OEM device trees + Wi-Fi board data |
 | **[ELI5 Guide](docs/wiki/ELI5-Guide.md)** | Plain-English explainer — what this is, who it's for, glossary |
 | **[Quick Start](docs/wiki/Quick-Start.md)** | Shortest path from stock to OpenWrt |
