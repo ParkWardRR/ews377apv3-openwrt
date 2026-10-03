@@ -2,14 +2,14 @@
 
 The fastest path from stock EnGenius firmware to OpenWrt on your EWS377AP v3, ECW230v3, or EWS377-FIT.
 
-> **Read the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/install-and-restore.md) for detailed instructions.** This page is a condensed overview.
+> **Read the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/install-and-restore.md) for detailed instructions.** This page is a condensed overview.
 
 ## Prerequisites
 
 - One of: EWS377AP v3, ECW230v3, EWS377-FIT
 - A computer on the same network
 - SSH client (built into macOS/Linux; PuTTY or Windows Terminal on Windows)
-- Downloaded firmware from the [Releases page](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases)
+- Downloaded firmware from the [Releases page](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases)
 - **Recommended:** USB-to-serial adapter (3.3V TTL) for UART access — this is your safety net
 
 ## Step 0 — Verify SHA256
@@ -86,11 +86,11 @@ reset
 
 ### SSH method
 
-See the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/install-and-restore.md) — section on SSH + `ubiformat`.
+See the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/install-and-restore.md) — section on SSH + `ubiformat`.
 
 ### Web upload method
 
-See the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/install-and-restore.md) — section on web upload. Use `web-ui-factory.fit`.
+See the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/install-and-restore.md) — section on web upload. Use `web-ui-factory.fit`.
 
 ## Step 4 — First boot
 
@@ -106,11 +106,11 @@ After flashing and rebooting:
 - **AP doesn't boot:** Use UART to access u-boot and re-flash, or restore your NAND backup
 - **AP boots but no network:** Check that you are connected to the `lan` port (the single 2.5G Ethernet port)
 - **Wi-Fi doesn't show up:** Check LuCI → Network → Wireless — radios may need to be enabled and configured
-- **Want to go back to stock:** See the restore section in the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/install-and-restore.md)
+- **Want to go back to stock:** See the restore section in the [full install guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/install-and-restore.md)
 
 ## Report your results
 
-Whether it worked or not, your report helps. [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new) with:
+Whether it worked or not, your report helps. [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) with:
 
 - Your model (EWS377AP v3 / ECW230v3 / EWS377-FIT)
 - Install method used

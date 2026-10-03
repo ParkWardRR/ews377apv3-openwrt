@@ -5,7 +5,7 @@ HTTP mechanism is now proven to work end-to-end** — a real, reusable technique
 full persistence validation is currently blocked on the one test unit available, by a
 hardware issue unrelated to the mechanism or image format. Documented here in detail so
 someone with a second unit can pick up exactly where this left off. See
-[GitHub issue #1 tracking community validation](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/1).
+[GitHub issue #1 tracking community validation](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/1).
 
 ## 1. The original "argument validation" rejection — resolved
 
@@ -104,7 +104,7 @@ dual-image writer apparently does not detect/route around this PEB the way u-boo
 Someone with **a second EWS377AP v3 / ECW230v3 / EWS377-FIT unit** (ideally one whose
 spare slot doesn't have this specific wear pattern) repeating steps 1–2 above:
 re-head the correctly-built `squashfs-factory.ubi` (see
-[Releases](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases)) to that unit's
+[Releases](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases)) to that unit's
 own running `product_id`, upload via the stock GUI, and confirm it boots to a shell and
 survives a reboot. If it does, Method B flips to fully proven for that SKU/unit
 combination and the docs' status marker updates accordingly. Please report back either

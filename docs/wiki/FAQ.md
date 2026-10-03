@@ -22,7 +22,7 @@ OpenWrt does not care about this distinction. The same firmware image runs on al
 
 ### What about the NETGEAR WAX218?
 
-Same board (`ap-hk07`), same chip (IPQ8072A). The WAX218 v1 is [officially supported by mainline OpenWrt](https://openwrt.org/toh/netgear/wax218). This project is built on the same foundation — same `config@hk07` boot contract, same install method template. See [docs/wax218-equivalence.md](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/wax218-equivalence.md).
+Same board (`ap-hk07`), same chip (IPQ8072A). The WAX218 v1 is [officially supported by mainline OpenWrt](https://openwrt.org/toh/netgear/wax218). This project is built on the same foundation — same `config@hk07` boot contract, same install method template. See [docs/wax218-equivalence.md](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/wax218-equivalence.md).
 
 ## Installation
 
@@ -31,13 +31,13 @@ Same board (`ap-hk07`), same chip (IPQ8072A). The WAX218 v1 is [officially suppo
 Yes, two methods exist:
 
 1. **SSH + `ubiformat`** — proven on the sibling WAX218, not yet tested on these EnGenius models. No cable needed.
-2. **Web upload** — upload through the stock web interface. The mechanism works but persistence has not been confirmed (see [method-b-findings](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/reference/method-b-findings.md)).
+2. **Web upload** — upload through the stock web interface. The mechanism works but persistence has not been confirmed (see [method-b-findings](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/reference/method-b-findings.md)).
 
 That said, **having a serial adapter is strongly recommended** as a safety net for your first flash. A 3.3V USB-to-TTL adapter costs under $5.
 
 ### Can I go back to stock firmware?
 
-Yes. The [install & back-to-stock guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/install-and-restore.md) covers restoration. You need the NAND backup you made before flashing (you did make one, right?).
+Yes. The [install & back-to-stock guide](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/install-and-restore.md) covers restoration. You need the NAND backup you made before flashing (you did make one, right?).
 
 ### SSH is on port 8822?
 
@@ -67,7 +67,7 @@ Linux 6.18. This is an NSS-EDMA fork — see [openwrt-nss-edma](https://github.c
 
 ### Is this mainline OpenWrt?
 
-No. This is built on a community fork that adds Qualcomm NSS hardware offload. The goal is to eventually upstream the board support to mainline OpenWrt (see the [upstreaming plan](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/ROADMAP.md)), but that requires stripping the NSS-specific patches and more hardware validation.
+No. This is built on a community fork that adds Qualcomm NSS hardware offload. The goal is to eventually upstream the board support to mainline OpenWrt (see the [upstreaming plan](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/ROADMAP.md)), but that requires stripping the NSS-specific patches and more hardware validation.
 
 ### Are both Wi-Fi bands working?
 
@@ -89,7 +89,7 @@ Check that `ath11k` loaded: `dmesg | grep ath11k`. If it did not load, check tha
 
 ### How do I report a bug?
 
-[Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new). Include:
+[Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new). Include:
 - Model (EWS377AP v3 / ECW230v3 / EWS377-FIT)
 - Firmware version (from the release tag)
 - Install method

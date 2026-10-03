@@ -58,14 +58,14 @@ The stock EnGenius firmware works fine for its intended use — but it locks you
 ## How does it work? (the 30-second version)
 
 1. **Back up** your AP's current firmware and calibration data (important — this contains your unique radio settings)
-2. **Download** the firmware file from the [Releases page](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases)
+2. **Download** the firmware file from the [Releases page](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases)
 3. **Flash** it to the AP using one of three methods:
    - **Serial/UART** (most reliable, needs a cable) — write the firmware directly via the bootloader
    - **SSH** (no cable needed) — connect over the network and write via `ubiformat`
    - **Web upload** (easiest but experimental) — upload through the stock web interface
 4. **Reboot** — the AP comes up running OpenWrt with a web interface at `192.168.1.1`
 
-The full step-by-step guide is at **[docs/install-and-restore.md](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/blob/main/docs/install-and-restore.md)**.
+The full step-by-step guide is at **[docs/install-and-restore.md](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/blob/main/docs/install-and-restore.md)**.
 
 ## What about the cross-flash tool?
 
@@ -88,7 +88,7 @@ If you have one of these APs and are willing to test:
 
 1. **Flash the firmware** using the install guide
 2. **Report your results** — did it boot? Does Wi-Fi work? Ethernet? What model do you have?
-3. **Open an issue** at [github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new)
+3. **Open an issue** at [github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new)
 
 We especially need testers with **ECW230v3** and **EWS377-FIT** units — these have never been tested on real hardware.
 

@@ -4,7 +4,7 @@
 
 **Full hardware-accelerated OpenWrt on EnGenius `ap-hk07` Wi-Fi 6 access points**
 
-[![Release](https://img.shields.io/github/v/release/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07?label=firmware&color=success)](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases)
+[![Release](https://img.shields.io/github/v/release/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit?label=firmware&color=success)](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases)
 [![License: Blue Oak 1.0.0](https://img.shields.io/badge/license-Blue_Oak_1.0.0-0a7bbb.svg)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#status)
 [![Hardware Tested](https://img.shields.io/badge/hardware_tested-EWS377AP_v3-brightgreen.svg)](#supported-models)
@@ -13,7 +13,7 @@
 [![SoC](https://img.shields.io/badge/SoC-IPQ8072A-lightgrey.svg)](#hardware-at-a-glance)
 [![WiFi](https://img.shields.io/badge/WiFi_6-4x4_AX3600-blue.svg)](#hardware-at-a-glance)
 [![Ethernet](https://img.shields.io/badge/uplink-2.5_GbE-green.svg)](#hardware-at-a-glance)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues)
 [![Help Wanted](https://img.shields.io/badge/testers-wanted!-ff69b4.svg)](#help-wanted)
 
 <br/>
@@ -22,7 +22,7 @@
 
 <br/>
 
-**[Install Guide](docs/install-and-restore.md)** · **[Downloads](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases)** · **[Roadmap](docs/ROADMAP.md)** · **[ELI5 Guide](docs/wiki/ELI5-Guide.md)** · **[FAQ](docs/wiki/FAQ.md)** · **[Report Issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new)**
+**[Install Guide](docs/install-and-restore.md)** · **[Downloads](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases)** · **[Roadmap](docs/ROADMAP.md)** · **[ELI5 Guide](docs/wiki/ELI5-Guide.md)** · **[FAQ](docs/wiki/FAQ.md)** · **[Report Issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new)**
 
 </div>
 
@@ -66,7 +66,7 @@ The **NETGEAR WAX218 v1** is the same `ap-hk07` reference board and is [official
 
 ## Downloads
 
-Firmware images + `SHA256SUMS` → **[Releases](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases)**
+Firmware images + `SHA256SUMS` → **[Releases](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases)**
 
 | File | Purpose | Status |
 |---|---|---|
@@ -77,7 +77,7 @@ Firmware images + `SHA256SUMS` → **[Releases](https://github.com/ParkWardRR/op
 
 ### Web upload status
 
-The OEM web upload mechanism (`upload.cgi`) works — it accepts, stages, and flashes a correctly-headed image. The earlier "rejects everything" finding was a `product_id` mismatch, not a protocol issue. However, persistence has not been confirmed: the one test unit has a bad NAND block in the spare slot. **If you have a second unit, [we need your help](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/1).**
+The OEM web upload mechanism (`upload.cgi`) works — it accepts, stages, and flashes a correctly-headed image. The earlier "rejects everything" finding was a `product_id` mismatch, not a protocol issue. However, persistence has not been confirmed: the one test unit has a bad NAND block in the spare slot. **If you have a second unit, [we need your help](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/1).**
 
 Full writeup: [`reference/method-b-findings.md`](reference/method-b-findings.md).
 
@@ -131,7 +131,7 @@ A Zig-native terminal UI ships in [`tui/`](tui/) — guided installs, device sta
 cd tui && zig build run
 ```
 
-Pre-built binaries (Linux x86_64/aarch64, macOS arm64): **[v0.3 release](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/releases/tag/v0.3)**
+Pre-built binaries (Linux x86_64/aarch64, macOS arm64): **[v0.3 release](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases/tag/v0.3)**
 
 <details>
 <summary><strong>Screenshots</strong> — Install Guide · Validation · Device Info · Releases</summary>
@@ -152,12 +152,12 @@ This is an alpha release. We need community testing to move forward. Here is wha
 
 | What | Who | How to report |
 |---|---|---|
-| **Flash ECW230v3 or EWS377-FIT** and report boot/Wi-Fi/Ethernet results | Anyone with one of these APs | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new) |
-| **Test web-upload persistence** on a second EWS377AP v3 unit | EWS377AP v3 owner | [Issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/1) |
-| **SSH + `ubiformat` install** (no UART) on any of the three models | Anyone comfortable with SSH | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new) |
-| **NSS throughput numbers** under real load (iperf3, SQM) | Anyone running this firmware | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new) |
-| **2.5 GbE speed validation** with a 2.5G switch partner | Anyone with 2.5G infrastructure | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new) |
-| **Bug reports, install issues, unclear docs** | Everyone | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-v3-ecw230v3-ews377-fit-ipq8072a-ap-hk07/issues/new) |
+| **Flash ECW230v3 or EWS377-FIT** and report boot/Wi-Fi/Ethernet results | Anyone with one of these APs | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
+| **Test web-upload persistence** on a second EWS377AP v3 unit | EWS377AP v3 owner | [Issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/1) |
+| **SSH + `ubiformat` install** (no UART) on any of the three models | Anyone comfortable with SSH | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
+| **NSS throughput numbers** under real load (iperf3, SQM) | Anyone running this firmware | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
+| **2.5 GbE speed validation** with a 2.5G switch partner | Anyone with 2.5G infrastructure | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
+| **Bug reports, install issues, unclear docs** | Everyone | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
 
 When reporting, include: model, firmware version, install method used, `ubus call system board` output, and a description of what happened vs. what you expected.
 
