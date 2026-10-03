@@ -123,28 +123,17 @@ These three models are the same board with different firmware headers. To migrat
 
 For background on EnGenius controllers and firmware formats: **[EnGenius Field Guide](https://github.com/ParkWardRR/engenius-field-guide)**.
 
-## TUI — interactive terminal dashboard
+## ews377-tool — CLI utility
 
-A Zig-native terminal UI ships in [`tui/`](tui/) — guided installs, device status, NAND health checks. Zero dependencies, single static binary. Tokyo Night palette.
+A Zig-native CLI ships in [`tui/`](tui/) — zero dependencies, single static binary.
 
 ```
-cd tui && zig build run
+ews377-tool info                          # hardware reference card, models, install methods
+ews377-tool verify firmware.ubi [hash]    # SHA256-verify a firmware file
+ews377-tool probe 192.168.1.100           # SSH to device — identify model, firmware, partitions
 ```
 
-Pre-built binaries (Linux x86_64/aarch64, macOS arm64): **[v0.3 release](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases/tag/v0.3)**
-
-<details>
-<summary><strong>Screenshots</strong> — Install Guide · Validation · Device Info · Releases</summary>
-
-| Install Guide | Validation |
-|---|---|
-| ![Install Guide](docs/screenshots/tui-install.png) | ![Validation](docs/screenshots/tui-validation.png) |
-
-| Device Info | Releases |
-|---|---|
-| ![Device Info](docs/screenshots/tui-device.png) | ![Releases](docs/screenshots/tui-releases.png) |
-
-</details>
+Build: `cd tui && zig build` — binary at `zig-out/bin/ews377-tool`.
 
 ## Help wanted
 
