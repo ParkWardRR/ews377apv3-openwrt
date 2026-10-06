@@ -207,6 +207,7 @@ timeline
         2026-10-06 : First physical EWS377-FIT flashed over UART
                    : Per-SKU Wi-Fi board data + stable Wi-Fi MACs fixed
                    : v0.5 firmware published
+                   : v0.5.1 — ECW230v3 image carries both FIT configs; hardware-variant guide
 ```
 
 ## Documents
@@ -217,6 +218,7 @@ timeline
 | **[Roadmap](docs/ROADMAP.md)** | WAX218 alignment strategy, multi-SKU plan, validation checklist |
 | **[WAX218 equivalence](docs/wax218-equivalence.md)** | Same board as mainline OpenWrt's WAX218 — shared and differing traits |
 | **[Hardware reference](docs/hardware-reference.md)** | MTD map, boot chain, u-boot env, recovery procedures |
+| **[Which firmware for which hardware](docs/hardware-variants.md)** | Per-SKU files, RAM/u-boot hardware variants, ECW230v3 caveats, how to identify your unit |
 | **[Model differences](reference/model-differences.md)** | EWS377AP v3 vs. ECW230v3 vs. EWS377-FIT — what's identical, what differs |
 | **[Web upload findings](reference/method-b-findings.md)** | OEM `upload.cgi` reverse engineering — how the one-click install works |
 | **[Porting plan](docs/openwrt-porting-plan.md)** | End-to-end port plan with outcomes |
