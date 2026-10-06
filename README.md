@@ -161,7 +161,7 @@ This is an alpha release. We need community testing to move forward. Here is wha
 
 | What | Who | How to report |
 |---|---|---|
-| **Flash an ECW230v3** (or a second EWS377-FIT) and report boot/Wi-Fi/Ethernet results | Anyone with one of these APs | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
+| **Flash an ECW230v3** (post `/proc/mtd`, `printenv` and the u-boot banner *before* flashing — see the [ECW230v3 notes](docs/hardware-variants.md#ecw230v3-notes)) or a second EWS377-FIT and report boot/Wi-Fi/Ethernet results | Anyone with one of these APs | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
 | **Test web-upload persistence** on a second EWS377AP v3 unit | EWS377AP v3 owner | [Issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/1) |
 | **SSH + `ubiformat` install** (no UART) on any of the three models | Anyone comfortable with SSH | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
 | **NSS throughput numbers** under real load (iperf3, SQM) | Anyone running this firmware | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
@@ -209,6 +209,15 @@ timeline
                    : v0.5 firmware published
                    : v0.5.1 — ECW230v3 image carries both FIT configs; hardware-variant guide
 ```
+
+## What the first EWS377-FIT unit taught us
+
+Tested 2026-10-06 on real hardware — [full report](docs/ews377-fit-hardware-validation.md), roadmap [§9](docs/ROADMAP.md#9-learnings-from-the-first-ews377-fit-unit-2026-10-06).
+
+- **Same board ≠ same unit.** The FIT had 512 MiB RAM and u-boot 2.1.0 with a boot menu (press `4`); the first EWS377AP v3 had 1 GiB and u-boot 2.0.0. One image per SKU works on both; only the install steps differ ([guide](docs/hardware-variants.md)).
+- **One OpenWrt image per SKU.** Each carries its own device tree variant and Wi-Fi board file. A shared multi-device build shipped the wrong board file and left the FIT with no radios; v0.5+ builds each SKU separately.
+- **The MAC is not in ART on this unit** — it lives in the u-boot env and `cert` partition. The firmware now reads it from the env and derives stable Wi-Fi MACs from it.
+- **Back up in ≤ 32 MiB chunks** on 512 MiB units (a 111 MiB `nand read` resets u-boot), and **never publish a raw backup** — the boot region holds the unit's cloud private key.
 
 ## Documents
 

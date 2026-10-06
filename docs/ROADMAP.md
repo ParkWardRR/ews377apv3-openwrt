@@ -11,12 +11,15 @@ EnGenius SKUs built on this hardware.
 |---|---|---|---|---|
 | **EWS377AP v3** | `0x011a` (282) | `EWS377APv3` | Controller-managed (EWS) | **Hardware-proven** |
 | **ECW230v3** | `0x011c` (284) | `ECW230v3` | Cloud-managed (ECW) | **DTS-validated** |
-| **EWS377-FIT** | `0x012c` (300) | `EWS377-FIT` | Standalone (FIT) | **DTS-validated** |
+| **EWS377-FIT** | `0x012c` (300) | `EWS377-FIT` | Standalone (FIT) | **Hardware-proven (2026-10-06)** — see [validation report](ews377-fit-hardware-validation.md) |
 
 All three share `vendor_id=0x0101`, identical silicon (IPQ8072A, `ap-hk07`),
 identical DTS properties (LEDs, reset GPIO, WiFi board data `0x290`, 2.5G PHY),
-and the same `config@hk07` boot contract. They differ **only** in firmware header
-fields. See [`reference/model-differences.md`](../reference/model-differences.md).
+and the same `config@hk07` boot contract. They differ in firmware header fields **and,
+as the first FIT unit showed, in the per-SKU device tree identity and Wi-Fi board file
+the OpenWrt image must carry** (see §9). See
+[`reference/model-differences.md`](../reference/model-differences.md) and
+[`hardware-variants.md`](hardware-variants.md).
 
 ## 0. Validated foundation (checked against real firmware, 2026-09-07)
 
@@ -120,10 +123,16 @@ request contract."
    ews377apv3.bin        ecw230v3.bin        ews377fit.bin
 ```
 
-The `squashfs-factory.ubi` / `sysupgrade.bin` / `initramfs-uImage.itb` artifacts stay
-**one build for all three** (same silicon, same DTS) — only the Senao-wrapped web
-artifact needs per-SKU variants, and only because of *EnGenius's* validator, not
-OpenWrt's.
+> **Corrected 2026-10-06 — this section's original premise was wrong.** The
+> `squashfs-factory.ubi` / `sysupgrade.bin` / `initramfs-uImage.itb` artifacts are **not**
+> one build for all three. Each SKU's image carries its own device tree (model string and
+> `qcom,ath11k-calibration-variant`) and its own Wi-Fi `board-2.bin`; ath11k looks the
+> board file up by that variant string. A multi-profile build shares one rootfs, so every
+> image got the EWS377AP v3 board file and the FIT radios never started. Build each SKU on
+> its own (`ews377ap-v3-port/build-skus.sh` in `openwrt-nss-edma`). Re-heading one SKU's
+> *complete* image to another SKU's `product_id` still boots and keeps radios working (it
+> brings along the donor SKU's variant + board file), but it reports the wrong model and
+> uses another SKU's RF board data — acceptable for a test, not for a release.
 
 ### Artifact state model — `web-ui-factory.fit` is NOT persistent, and that must be explicit
 
@@ -154,8 +163,10 @@ must state which row an artifact is, not just link the file.
       2.5G PHY (`port_id=6`/`phy_address=0x1c`) are **identical across all three SKUs**.
       Only the `compatible` string differs, cosmetically (SDK-generation naming drift —
       ECW230v3's stock firmware kernel is a 2023 build, the other two are 2026 builds).
-      **One shared DTS/device-profile is sufficient for all three** — no per-SKU DTS
-      fork needed; §5 Phase 3 is simplified accordingly (recipe-only, no new DTS work).
+      **One shared hardware description (`ipq8072-engenius-ap-hk07.dtsi`) is sufficient
+      for all three**, with thin per-SKU `.dts` wrappers for model/compatible/Wi-Fi
+      variant (superseded wording, 2026-10-06: "no per-SKU DTS" was too strong — the
+      wrapper is what selects the right board file).
 - [x] Confirm each SKU's own **WiFi board-id / calibration variant**. **Done** — `0x290`
       confirmed identical on all three via their own `fdt@hk07` (not just EWS377AP v3 and
       ECW230v3 as before; EWS377-FIT now confirmed too). `bdwlan.b290` in
@@ -179,6 +190,11 @@ must state which row an artifact is, not just link the file.
       target by offset `0x1000000`, not label). This is the **recommended path for
       ECW230v3 units** over the web upload, because it bypasses the OEM's spare-slot
       targeting and the `product_id` header gate entirely.
+- [x] **EWS377-FIT hardware pass (2026-10-06).** UART install, persistent NAND boot,
+      ethernet, both radios (WPA2), stable MACs, `sysupgrade` x2 on a real unit — see
+      [`ews377-fit-hardware-validation.md`](ews377-fit-hardware-validation.md). Still open for
+      the FIT: 2.5 GbE link, reset button/failsafe, LED mapping, cold power-cycle on the
+      final image, invalid-image rejection.
 - [ ] **Capture the live boot/flash state machine per SKU** — full `/proc/mtd`,
       `ubinfo -a`, `fw_printenv`, and a NAND bad-block map, from a live unit, for every
       state (stock / temporary OpenWrt / persistent OpenWrt / post-sysupgrade). Don't
@@ -198,6 +214,10 @@ must state which row an artifact is, not just link the file.
       + a compliance/regulatory-domain check per SKU.**
 
 ## 5. Phased execution plan
+
+> **Status 2026-10-06:** Phase 5 (hardware validation) is done for **EWS377AP v3** and
+> **EWS377-FIT** (FIT checklist items still open are in §4); **ECW230v3** has no unit yet.
+> v0.5.1 ships per-SKU images for all three.
 
 **Phase 1 — Data (no hardware, no risk).** Complete the §4 checklist above using the
 real firmware files already available for all three SKUs. Deliverable: a
@@ -337,3 +357,35 @@ answered** and should be before any wider release or an upstream PR:
 - A "web-ui-factory.fit boots" result is not "OpenWrt is installed" — persistence
   requires the follow-up `sysupgrade` step (§3 artifact table). Don't conflate the two
   in any writeup.
+
+## 9. Learnings from the first EWS377-FIT unit (2026-10-06)
+
+The unit was a hardware/bootloader variant we had not seen. Full evidence:
+[`ews377-fit-hardware-validation.md`](ews377-fit-hardware-validation.md). What changes for the project:
+
+1. **"Same silicon" is not "same unit".** The FIT had 512 MiB RAM (v3: 1 GiB) and u-boot 2.1.0 (v3: 2.0.0) — a
+   boot *menu* (press `4`), `IPQ807x#` prompt, `bootdelay=2`. Same image, different install procedure. Never copy
+   specs or recipes between SKUs without your own boot log.
+2. **Per-SKU images are mandatory** — the shared-rootfs multi-profile build shipped the wrong Wi-Fi board file
+   (see the correction in §3). Fixed in v0.5; `build-skus.sh` verifies each image's `board-2.bin`.
+3. **MAC address is not in ART on this unit.** ART starts with `0xff` and holds Atheros placeholder MACs; the real
+   MAC is u-boot env `ethaddr` and the `cert` partition's `SN/MAC/HWID` record (which the stock `cloud_guard`
+   cross-checks against the env). The DTS reads `ethaddr` via `nvmem-layout "u-boot,env"`; Wi-Fi MACs are derived
+   from it in `11_fix_wifi_mac`.
+4. **The guide's single 111 MiB `nand read` resets this u-boot** (control FDT at `0x4a970ec0`). Back up in
+   chunks ≤ 32 MiB. A TFTP server is needed for `tftpput`/`tftpboot`; any host with port 69 works (a container is
+   fine).
+5. **`active_fw` was already `0` → no `saveenv`** is needed after `nand write`, which leaves the env (and MAC)
+   untouched. Prefer that whenever possible.
+6. **Backups contain secrets.** The boot region holds the unit's cloud RSA private key (`cert`). Never publish a
+   raw dump; redact logs.
+7. **ECW230v3 is the real unknown:** stock FIT default is `config@hk08` (image now carries both configs) and its
+   `rootfs`/`rootfs_1` labels are reversed (check `/proc/mtd` before choosing the slot).
+8. **Tool assumptions to re-check** in the companion [Pelegrún](https://github.com/ParkWardRR/pelegrun-ap-hk07-firmware-tools)
+   toolkit: its env completeness gate rejects this working FIT env (no `rootfsname`), mtd *indices* shift because
+   of the extra `cert`/`userconfig`/`crashdump` partitions (ART is `mtd12`, not `mtd11`), and `quarry inspect`
+   cannot read the XOR-encrypted OpenWrt-built `senao-factory.bin` header. Issues filed there.
+
+### Next
+Finish the FIT checklist (§4), add `/etc/fw_env.config` for `0:appsblenv` (env size `0x40000`) so
+`fw_printenv`/`fw_setenv` work, find an ECW230v3 tester, and keep the per-SKU build assertion in release CI.
