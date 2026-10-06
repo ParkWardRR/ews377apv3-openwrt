@@ -58,17 +58,28 @@ ECW230v3 is confirmed identical hardware (same DTS properties, same GPIOs, same 
 
 | Model | Product ID | Management mode | Hardware test status |
 |---|---|---|---|
-| **EWS377AP v3** | `0x011a` (282) | Controller (EWS/ezMaster) | **Proven** — persistent NAND boot, Wi-Fi, Ethernet |
-| **ECW230v3** | `0x011c` (284) | Cloud (EnGenius Cloud) | **Untested** — DTS-validated, identical silicon |
-| **EWS377-FIT** | `0x012c` (300) | Standalone | **Proven (2026-10-06)** — persistent NAND boot, Ethernet, both radios, sysupgrade; [report](docs/ews377-fit-hardware-validation.md) |
+| **EWS377AP v3** | `0x011a` (282) | Controller-managed (EWS) | **Hardware-proven** — boots and persists from NAND |
+| **ECW230v3** | `0x011c` (284) | Cloud-managed (ECW) | **DTS-validated** — identical hardware, awaiting hardware test |
+| **EWS377-FIT** | `0x012c` (300) | Standalone (FIT) | **Hardware-proven** (2026-10-06) — persistent NAND boot, ethernet, both radios, sysupgrade; see the [validation report](docs/ews377-fit-hardware-validation.md) (512 MiB RAM + u-boot 2.1.0 boot menu variant) |
 
 All three share identical silicon, LEDs, reset GPIO, Wi-Fi board data, Ethernet PHY, and the `config@hk07` boot contract. They differ only in their Senao firmware header `product_id`. See [`reference/model-differences.md`](reference/model-differences.md).
 
 The **NETGEAR WAX218 v1** is the same `ap-hk07` reference board and is [officially supported by mainline OpenWrt](docs/wax218-equivalence.md).
 
+> ## ✅ Status: validated on hardware (EWS377AP v3 and EWS377-FIT)
+> OpenWrt boots and runs **persistently from NAND** on a real EWS377AP v3 unit:
+> `bootipq` → FIT `config@hk07` → kernel → UBI root mount → squashfs +
+> `rootfs_data` overlay → shell, surviving real reboots. **Ethernet**, **both
+> Wi-Fi radios (WPA2)**, and **config persistence** confirmed. Secure boot is
+> **not fused** (custom images boot). **EWS377-FIT** was hardware-validated on
+> 2026-10-06 on a newer unit variant (512 MiB RAM, u-boot 2.1.0 menu, MAC in the
+> u-boot env rather than ART) — [full report](docs/ews377-fit-hardware-validation.md).
+> ECW230v3 is DTS-validated (identical hardware confirmed) but awaiting hardware
+> testing. Unofficial / community; prerelease.
+
 ## Downloads
 
-Firmware images + `SHA256SUMS` → **[Releases](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases)**
+Firmware images + `SHA256SUMS`: **[Releases](https://github.com/ParkWardRR/ews377apv3-openwrt/releases)** — firmware `v0.5` (per-SKU images for all three models; EWS377-FIT hardware-tested), TUI `v0.3`.
 
 | File | Purpose | Status |
 |---|---|---|
