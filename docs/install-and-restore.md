@@ -83,6 +83,15 @@ get stock back byte-for-byte (Section 6).
 > You do **not** need to (and must not) back up or write the ART / bootloader area
 > below `0x1000000`. Leaving it untouched is what keeps recovery possible.
 
+> ⚠️ **Newer units (EWS377-FIT with u-boot 2.1.0, 512 MiB RAM): do NOT read a whole
+> 111 MiB slot in one `nand read`.** On these units u-boot's own control device tree
+> lives at `0x4a970ec0`, inside `0x44000000 + 0x6f00000`; the read overwrites it and the
+> AP resets. Read in chunks of at most `0x2000000` (32 MiB) to `0x44000000` and join the
+> parts on the TFTP server. Also: those units keep the MAC in the u-boot env and the
+> `cert` partition, **not** in ART — and `0x0–0x1000000` contains the unit's cloud
+> private key, so never publish that backup. See
+> [`docs/ews377-fit-hardware-validation.md`](ews377-fit-hardware-validation.md).
+
 ---
 
 ## 3. Easy path — web upload
@@ -204,6 +213,12 @@ sha256sum -c SHA256SUMS --ignore-missing   # must print: ...factory.ubi: OK
 ### 4.4 (Optional but nice) test-drive in RAM first
 This boots OpenWrt entirely in memory — **nothing is written**, so it's totally safe.
 Power on, press a key to stop the countdown and get the `=>` bootloader prompt, then:
+
+> **EWS377-FIT / u-boot 2.1.0:** there is no countdown. After `U-Boot 2016.01 …
+> V2.1.0` the console shows a menu (`2` TFTP-flash system, `4` boot command line,
+> `9` TFTP-flash bootloader, `e` erase env). Press **`4`** to reach the `IPQ807x#`
+> prompt (never `9` or `e`). The stock console password prompt is not needed.
+
 ```
 setenv serverip <your-pc-ip> ; setenv ipaddr <an-unused-ip-on-your-lan>
 tftpboot 0x44000000 openwrt-…-initramfs-uImage.itb
@@ -236,6 +251,8 @@ Continue to [First boot](#5-first-boot).
 
 ## 5. First boot
 
+- (EWS377-FIT builds default the LAN to a **DHCP client** instead — find the address in your
+  router's lease list or on the UART console.)
 - OpenWrt comes up with LAN on **`192.168.1.1`**. Plug your PC into the AP's LAN port,
   set your PC to DHCP, and open **http://192.168.1.1** (LuCI web UI), or `ssh root@192.168.1.1`.
 - **Set a root password immediately** (LuCI → System → Administration, or `passwd`).

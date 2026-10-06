@@ -9,6 +9,20 @@ raw `dtc` output uses arbitrary per-file phandle numbers as the first cell of a
 meaningful across files; that distinction is called out below because an early pass
 nearly misread it as a real difference.
 
+## Hardware variants observed on real units (2026-10-06)
+
+DTS-level identical does **not** mean every unit is identical. The first physical EWS377-FIT
+differs from the documented EWS377AP v3 unit in ways that matter for install and MAC handling:
+
+| | EWS377AP v3 (documented) | EWS377-FIT (observed) |
+|---|---|---|
+| RAM | 1 GiB | **512 MiB** |
+| u-boot | 2.0.0, `=>`, 5 s countdown | **2.1.0 (2022), `IPQ807x#`, boot menu — press `4`** |
+| MAC source | ART | **u-boot env `ethaddr` + `cert` partition; ART holds placeholders** |
+| Stock console | — | password-protected; `admin` rejected |
+
+Full report: [`docs/ews377-fit-hardware-validation.md`](../docs/ews377-fit-hardware-validation.md).
+
 ## Result: functionally identical at the DTS level
 
 | Property | EWS377AP v3 | ECW230v3 | EWS377-FIT | Same? |

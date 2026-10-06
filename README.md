@@ -46,11 +46,13 @@ This is an **alpha release**. We are soliciting feedback and hardware testing fr
 
 ## Status
 
-> **Alpha — validated on EWS377AP v3 hardware. ECW230v3 and EWS377-FIT awaiting community testers.**
+> **Alpha — validated on EWS377AP v3 and EWS377-FIT hardware. ECW230v3 awaiting community testers.**
 
 OpenWrt boots and runs **persistently from NAND** on a real EWS377AP v3: `bootipq` → FIT `config@hk07` → kernel → UBI root → squashfs + overlay → shell. Ethernet, both Wi-Fi radios (WPA2), and config persistence all confirmed. Secure boot is **not fused**.
 
-ECW230v3 and EWS377-FIT are confirmed identical hardware (same DTS properties, same GPIOs, same PHY, same Wi-Fi calibration ID) but have **not been tested on physical units**. We need your help.
+**EWS377-FIT** was hardware-validated on 2026-10-06 on a newer unit variant (512 MiB RAM, u-boot 2.1.0 boot menu, MAC stored in the u-boot env rather than ART): persistent NAND boot, ethernet, both radios, `sysupgrade` — see the [validation report](docs/ews377-fit-hardware-validation.md).
+
+ECW230v3 is confirmed identical hardware (same DTS properties, same GPIOs, same PHY, same Wi-Fi calibration ID) but has **not been tested on a physical unit**. We need your help.
 
 ## Supported models
 
@@ -58,7 +60,7 @@ ECW230v3 and EWS377-FIT are confirmed identical hardware (same DTS properties, s
 |---|---|---|---|
 | **EWS377AP v3** | `0x011a` (282) | Controller (EWS/ezMaster) | **Proven** — persistent NAND boot, Wi-Fi, Ethernet |
 | **ECW230v3** | `0x011c` (284) | Cloud (EnGenius Cloud) | **Untested** — DTS-validated, identical silicon |
-| **EWS377-FIT** | `0x012c` (300) | Standalone | **Untested** — DTS-validated, identical silicon |
+| **EWS377-FIT** | `0x012c` (300) | Standalone | **Proven (2026-10-06)** — persistent NAND boot, Ethernet, both radios, sysupgrade; [report](docs/ews377-fit-hardware-validation.md) |
 
 All three share identical silicon, LEDs, reset GPIO, Wi-Fi board data, Ethernet PHY, and the `config@hk07` boot contract. They differ only in their Senao firmware header `product_id`. See [`reference/model-differences.md`](reference/model-differences.md).
 
@@ -159,7 +161,7 @@ This is an alpha release. We need community testing to move forward. Here is wha
 
 | What | Who | How to report |
 |---|---|---|
-| **Flash ECW230v3 or EWS377-FIT** and report boot/Wi-Fi/Ethernet results | Anyone with one of these APs | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
+| **Flash an ECW230v3** (or a second EWS377-FIT) and report boot/Wi-Fi/Ethernet results | Anyone with one of these APs | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
 | **Test web-upload persistence** on a second EWS377AP v3 unit | EWS377AP v3 owner | [Issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/1) |
 | **SSH + `ubiformat` install** (no UART) on any of the three models | Anyone comfortable with SSH | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
 | **NSS throughput numbers** under real load (iperf3, SQM) | Anyone running this firmware | [Open an issue](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/new) |
@@ -201,6 +203,10 @@ timeline
         2026-10-02 : Repository made public
                    : v0.4 multi-SKU alpha release
                    : Community testing solicited
+    section EWS377-FIT validated
+        2026-10-06 : First physical EWS377-FIT flashed over UART
+                   : Per-SKU Wi-Fi board data + stable Wi-Fi MACs fixed
+                   : v0.5 firmware published
 ```
 
 ## Documents
