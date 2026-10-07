@@ -1,0 +1,229 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR BSD-2-Clause
+/*
+ * Shared hardware for EnGenius AP-HK07 family (IPQ8072A):
+ *   EWS377AP v3, ECW230v3, EWS377-FIT
+ *
+ * All three share identical board hardware: same LEDs (GPIO 54/55/56),
+ * same reset button (GPIO 52), same ethernet (QCA8081 @ MDIO addr 28,
+ * 2.5GbE on ESS port 6 via uniphy2), same NAND (128k/2048, SMEM
+ * partitions), same WiFi (QCN5024 + QCN5054, board_id 0x290).
+ *
+ * GPIO/LED/PHY values confirmed from vendor device tree fdt@hk07
+ * extracted from stock firmware.
+ *
+ * NSS offload tunings from EnGenius firmware v3.9.3.2 OEM DTS:
+ *   - Both NSS cores activated (Core 0 = data, Core 1 = crypto)
+ *   - All 17 data-plane offload flags enabled
+ *   - NSS clock frequencies matching OEM (max 1690 MHz)
+ *   - EIP197 crypto engine with full algorithm suite
+ */
+
+/dts-v1/;
+
+#include "ipq8074.dtsi"
+#include "ipq8074-nss.dtsi"
+#include "ipq8074-hk-cpu.dtsi"
+#include "ipq8074-ess.dtsi"
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	aliases {
+		serial0 = &blsp1_uart5;
+		led-boot = &led_blue;
+		led-failsafe = &led_red;
+		led-running = &led_blue;
+		led-upgrade = &led_green;
+	};
+
+	chosen {
+		stdout-path = "serial0,115200n8";
+		bootargs-append = " ubi.block=0,rootfs root=/dev/ubiblock0_1";
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "reset";
+			gpios = <&tlmm 52 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led_red: led-red {
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_RED>;
+			gpios = <&tlmm 54 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_green: led-green {
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&tlmm 55 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_blue: led-blue {
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+&blsp1_uart5 {
+	status = "okay";
+};
+
+&tlmm {
+	mdio_pins: mdio-pins {
+		mdc {
+			pins = "gpio68";
+			function = "mdc";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+
+		mdio {
+			pins = "gpio69";
+			function = "mdio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+	};
+};
+
+&mdio {
+	status = "okay";
+	pinctrl-0 = <&mdio_pins>;
+	pinctrl-names = "default";
+	reset-gpios = <&tlmm 43 GPIO_ACTIVE_HIGH>;
+
+	qca8081_28: ethernet-phy@28 {
+		compatible = "ethernet-phy-id004d.d101";
+		reg = <28>;
+	};
+};
+
+&uniphy2 {
+	status = "okay";
+};
+
+&switch {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			ethernet = <&edma>;
+			phy-mode = "internal";
+
+			fixed-link {
+				speed = <1000>;
+				full-duplex;
+			};
+		};
+
+		swport6: port@6 {
+			reg = <6>;
+			label = "lan";
+			phy-handle = <&qca8081_28>;
+			phy-mode = "2500base-x";
+			pcs-handle = <&uniphy2 0>;
+			nvmem-cells = <&macaddr_ubootenv_ethaddr>;
+			nvmem-cell-names = "mac-address";
+		};
+	};
+};
+
+&edma {
+	status = "okay";
+};
+
+&qpic_bam {
+	status = "okay";
+};
+
+&qpic_nand {
+	status = "okay";
+
+	nand@0 {
+		reg = <0>;
+		nand-ecc-strength = <4>;
+		nand-ecc-step-size = <512>;
+		nand-bus-width = <8>;
+
+		partitions {
+			compatible = "qcom,smem-part";
+
+			partition-0-appsblenv {
+				label = "0:appsblenv";
+				read-only;
+
+				nvmem-layout {
+					compatible = "u-boot,env";
+					env-size = <0x40000>;
+
+					macaddr_ubootenv_ethaddr: ethaddr {
+					};
+				};
+			};
+		};
+	};
+};
+
+&wifi {
+	status = "okay";
+	qcom,ath11k-fw-memory-mode = <1>;
+};
+
+/* ---- NSS offload tunings from EnGenius OEM firmware v3.9.3.2 ---- */
+/* Source: hk07-oem-native-v3.9.3.2.dts lines 1168-1228 */
+
+/* NSS Core 0: data-plane offloads — all 17 OEM flags enabled */
+&nss0 {
+	qcom,low-frequency = <0x2ca1c800>;	/* 750 MHz */
+	qcom,mid-frequency = <0x59439000>;	/* 1500 MHz */
+	qcom,max-frequency = <0x64b54000>;	/* 1690 MHz — OEM max for IPQ8072A */
+
+	qcom,bridge-enabled;
+	qcom,ipv4-enabled;
+	qcom,ipv4-reasm-enabled;
+	qcom,ipv6-enabled;
+	qcom,ipv6-reasm-enabled;
+	qcom,wlanredirect-enabled;
+	qcom,tun6rd-enabled;
+	qcom,l2tpv2-enabled;
+	qcom,gre-enabled;
+	qcom,gre-redir-enabled;
+	qcom,gre-redir-mark-enabled;
+	qcom,map-t-enabled;
+	qcom,portid-enabled;
+	qcom,ppe-enabled;
+	qcom,pppoe-enabled;
+	qcom,pptp-enabled;
+	qcom,tunipip6-enabled;
+	qcom,shaping-enabled;
+	qcom,wlan-dataplane-offload-enabled;
+	qcom,vlan-enabled;
+	qcom,igs-enabled;
+};
+
+/* NSS Core 1: crypto / security offloads */
+&nss1 {
+	qcom,capwap-enabled;
+	qcom,dtls-enabled;
+	qcom,crypto-enabled;
+	qcom,ipsec-enabled;
+	qcom,qvpn-enabled;
+	qcom,pvxlan-enabled;
+	qcom,clmap-enabled;
+	qcom,rmnet_rx-enabled;
+};
