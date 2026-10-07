@@ -14,7 +14,8 @@ should see. A short [glossary](#glossary-plain-english) at the end explains the 
 
 ## 0. Is this for you? (30-second read)
 
-- **Hardware:** EnGenius **EWS377AP v3** only (Qualcomm IPQ8072A, board `ap-hk07`).
+- **Hardware:** EnGenius **EWS377AP v3**, **ECW230v3**, or **EWS377-FIT** (all
+  Qualcomm IPQ8072A, board `ap-hk07` — same silicon, same OpenWrt image).
   Not the v1/v2, not other models.
 - **What you get:** real OpenWrt — LuCI web UI, SSH, package manager — instead of the
   locked vendor firmware. No cloud, no controller.
@@ -24,6 +25,16 @@ should see. A short [glossary](#glossary-plain-english) at the end explains the 
 - **Golden rule:** **make your own backup first** (Section 2). Your access point's
   Wi-Fi calibration and MAC address are unique to it — no one else's backup can
   replace them.
+
+> **Running ECW230v3 or EWS377-FIT firmware?** The same OpenWrt image works on all
+> three SKUs (identical silicon). The only difference is the Senao header
+> `product_id` used by the stock web uploader: EWS377AP v3 = 282, ECW230v3 = 284,
+> EWS377-FIT = 300. The UART and SSH install paths bypass the web uploader entirely
+> and work unchanged. The web-upload path needs a correctly-headed image — see
+> [Section 3](#3-easy-path--web-upload). Also note: the **MTD partition labels may
+> differ** between firmware builds (see
+> [Section 3b, step 0](#3b-ssh-path--from-stock-no-serial)) — always verify live
+> before writing.
 
 ---
 
@@ -107,17 +118,24 @@ get stock back byte-for-byte (Section 6).
 > cable handy, and please report your result either way.
 
 1. Make sure you're on stock EnGenius firmware and can reach its web interface.
-2. Download **`…-web-ui-factory.fit`** and **`SHA256SUMS`** from the
-   [release](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases), and check it:
+2. Download the **web-ui image for your SKU** and **`SHA256SUMS`** from the
+   [release](https://github.com/ParkWardRR/ews377apv3-openwrt/releases):
+
+   | Your firmware | Download this file | product_id |
+   |---|---|---|
+   | **EWS377AP v3** | `…-web-ui-ews377apv3.bin` | 282 |
+   | **ECW230v3** (cloud) | `…-web-ui-ecw230v3.bin` | 284 |
+   | **EWS377-FIT** | `…-web-ui-ews377fit.bin` | 300 |
+
+   All three contain the **identical** OpenWrt payload — only the Senao header
+   `product_id` differs, so the stock `upload.cgi` on each SKU accepts "its own"
+   image. Verify the checksum:
    ```
    sha256sum -c SHA256SUMS --ignore-missing
    ```
-   It must say `OK`. If it doesn't, re-download — do not flash a bad file. (This
-   artifact is built the same way as the officially-supported sibling WAX218's own
-   web-UI image — a kernel-only UBI wrapping the initramfs kernel, not our earlier
-   Senao-wrapped attempt.)
+   It must say `OK`. If it doesn't, re-download — do not flash a bad file.
 3. In the EnGenius web UI, open the **firmware upgrade** page and upload
-   `…-web-ui-factory.fit`. Let it finish and reboot **without** cutting power.
+   the `.bin` file matching your SKU. Let it finish and reboot **without** cutting power.
 4. After a minute or two it should come up as OpenWrt — but **this is a temporary boot,
    not a finished install yet.** `web-ui-factory.fit` boots a self-contained OpenWrt
    environment from RAM; nothing is saved to flash by this step alone (mirrors exactly
@@ -151,13 +169,26 @@ end-to-end on a real EWS377**, so treat it as experimental and keep a serial cab
 ezMaster-managed (managed units disable SSH), and you know its admin password (`admin` on
 a factory-reset unit). Download and verify `…-squashfs-factory.ubi` (Section 4.3).
 
+> **ECW230v3 / EWS377-FIT note:** The SSH path bypasses the web uploader entirely — no
+> Senao header, no `product_id` check, no reheading needed. You flash the same
+> `squashfs-factory.ubi` image regardless of which SKU's firmware is currently running.
+> The only thing that can differ is the **MTD partition layout** — see step 0 below.
+
 ```
 AP=<ap-ip>
 SSHOPTS="-p 8822 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa"
 
-# 0. VERIFY the target partition on YOUR unit. It MUST be the mtd at offset 0x01000000.
-#    Do not assume the number below — read it here and use what you see.
-ssh $SSHOPTS root@$AP 'cat /proc/mtd'          # note the mtdN whose offset is 0x01000000
+# 0. VERIFY the target partition on YOUR unit.
+#    You need the rootfs-type partition whose NAND offset is at or above 0x01000000.
+#    Do not assume the mtd number or the label — read it here and use what you see.
+#
+#    ⚠️  ECW230v3 cloud firmware labels its partitions differently from EWS firmware:
+#    on observed ECW230v3 units, the partition at 0x1000000 is labeled "rootfs_1"
+#    and the one at 0x8800000 is labeled "rootfs" — the reverse of what EWS firmware
+#    shows. The PHYSICAL OFFSETS are what matter, not the labels. OpenWrt must go
+#    to the partition at 0x1000000 (slot 0), regardless of what the running firmware
+#    calls it. Write down both the mtd NUMBER and the OFFSET you see.
+ssh $SSHOPTS root@$AP 'cat /proc/mtd'
 
 # 1. Safety: aim the NEXT boot at the other slot, so a power cut mid-write still leaves
 #    an intact system to boot.
@@ -167,7 +198,8 @@ ssh $SSHOPTS root@$AP 'fw_setenv active_fw 1'
 scp -O -P 8822 -o HostKeyAlgorithms=+ssh-rsa \
     openwrt-…-ews377ap-v3-squashfs-factory.ubi root@$AP:/tmp/openwrt.ubi
 
-# 3. Write it. Replace mtd12 with the device you verified in step 0.
+# 3. Write it. Replace mtd12 with the device you verified in step 0 — the one at
+#    offset 0x01000000, regardless of its label.
 ssh $SSHOPTS root@$AP 'ubiformat /dev/mtd12 -f /tmp/openwrt.ubi -y'
 
 # 4. Select slot 0 (where OpenWrt must live) and reboot into it.
@@ -205,7 +237,7 @@ the downloaded images in its serving folder. Note your PC's IP.
 
 ### 4.3 Download + verify the image
 Grab **`…-squashfs-factory.ubi`** and **`SHA256SUMS`** from the
-[release](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases):
+[release](https://github.com/ParkWardRR/ews377apv3-openwrt/releases):
 ```
 sha256sum -c SHA256SUMS --ignore-missing   # must print: ...factory.ubi: OK
 ```
@@ -293,7 +325,8 @@ EnGenius EWS377AP v3 firmware through the normal EnGenius updater.
 
 | Symptom | What it means / fix |
 |---|---|
-| Web upload rejected or reboots to stock | Easy path didn't take → use the [serial path](#4-reliable-path--serial-cable). |
+| Web upload rejected ("INVALID VALUE OF ARGUMENTS") | `product_id` mismatch — you uploaded the image for a different SKU than the firmware currently running. Download the correct per-SKU `.bin` file (282=EWS377AP v3, 284=ECW230v3, 300=EWS377-FIT — see [Section 3](#3-easy-path--web-upload)). If it still fails, use the [SSH](#3b-ssh-path--from-stock-no-serial) or [serial path](#4-reliable-path--serial-cable) instead. |
+| Web upload accepted but reboots to stock | Easy path didn't take → use the [serial path](#4-reliable-path--serial-cable). |
 | `/proc/mtd` shows no partition at `0x01000000`, or `ubiformat` missing | SSH path not usable on your unit → use the [serial path](#4-reliable-path--serial-cable). |
 | SSH refused / no port 8822 | ezMaster-managed (SSH disabled) or non-default firmware → unmanage it, or use serial. |
 | No serial output at all | Wrong baud (use 115200 8N1), TX/RX swapped, or wrong header. Try swapping TX/RX. |
@@ -329,14 +362,21 @@ reinstall.
 | Region | Offset | Size | Note |
 |---|---|---|---|
 | bootloader / config / **ART** | `0x0`–`0x1000000` | 16 MiB | **never touch** |
-| `rootfs` (slot 0) | `0x1000000` | 111 MiB | ← OpenWrt goes here |
-| `0:wififw` | `0x7f00000` | 9 MiB | leave as-is |
-| `rootfs_1` (slot 1) | `0x8800000` | 111 MiB | vendor A/B slot (unused by OpenWrt) |
-| `0:wififw_1` | `0xf700000` | 9 MiB | leave as-is |
+| slot 0 | `0x1000000` | 111 MiB | ← OpenWrt goes here |
+| wififw | `0x7f00000` | 9 MiB | leave as-is |
+| slot 1 | `0x8800000` | 111 MiB | vendor A/B slot (unused by OpenWrt) |
+| wififw_1 | `0xf700000` | 9 MiB | leave as-is |
+
+> **Label warning:** the partition labels (`rootfs` / `rootfs_1`) in `/proc/mtd` can be
+> **swapped** depending on which firmware build is running. On EWS377AP v3 firmware, slot 0
+> at `0x1000000` is typically labeled `rootfs`. On ECW230v3 cloud firmware, the same
+> physical slot at `0x1000000` is labeled `rootfs_1`, and the slot at `0x8800000` is
+> `rootfs`. **Ignore the labels — target by physical NAND offset (`0x1000000`).**
+> Always verify with `cat /proc/mtd` on your actual unit before writing.
 
 Two device-specific details make OpenWrt boot on the stock bootloader: the FIT kernel
 image must expose a config named **`config@hk07`** (the bootloader picks the config by
-board name), and OpenWrt must be installed to **slot 0** (its root-mount always uses
-the `rootfs`-labeled partition). Both are baked into these images — you don't have to
-do anything. Full write-up: `PORT-STATUS-ews377ap-v3.md` on the
+board name), and OpenWrt must be installed to **slot 0** (`0x1000000`). Both are baked
+into these images — you don't have to do anything. Full write-up:
+`PORT-STATUS-ews377ap-v3.md` on the
 [`openwrt-nss-edma`](https://github.com/ParkWardRR/openwrt-nss-edma) `ews377ap-v3` branch.

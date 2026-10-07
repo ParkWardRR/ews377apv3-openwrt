@@ -75,7 +75,15 @@ OpenWrt build → DTS, board files, and partition layout already exist in EnGeni
 | 15 | 0:WIFIFW | 0xf700000 | 9M | wifi fw for slot B |
 
 OpenWrt reads this table via `qcom,smem-part` (no hand-written offsets). Two 111 MiB rootfs slots =
-the A/B dual-boot, selected by the u-boot `active_fw` env var. `setconfig` fields (OEM): field 0 =
+the A/B dual-boot, selected by the u-boot `active_fw` env var.
+
+> **Label caveat (cross-SKU):** the `rootfs` / `rootfs_1` labels above are from a unit
+> running **ECW230v3 cloud firmware**. On **EWS377AP v3 firmware**, these labels may be
+> swapped (slot A at `0x1000000` labeled `rootfs` instead of `rootfs_1`). The physical
+> NAND offsets are the same across all three SKUs — always target by **offset**, not label.
+> See [install-and-restore.md, Appendix](install-and-restore.md#appendix--partition-map--why-it-works).
+
+`setconfig` fields (OEM): field 0 =
 9-digit serial; field 19 = `snextra`; fields 6/7/8 = LAN/WAN/WLAN MAC. Real MAC also in ART (mtd11).
 
 ## Secure boot — ✅ CONFIRMED NOT fused (definitive, 2026-09-06)

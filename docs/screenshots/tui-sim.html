@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EWS377AP TUI Simulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-dark: #1a1b26;
+    --bg-float: #24283b;
+    --bg-hl: #292e42;
+    --fg-dim: #565f89;
+    --fg: #a9b1d6;
+    --fg-bright: #c0caf5;
+    --blue: #7aa2f7;
+    --magenta: #bb9af7;
+    --green: #9ece6a;
+    --red: #f7768e;
+    --orange: #ff9e64;
+    --cyan: #7dcfff;
+    --yellow: #e0af68;
+    --teal: #73daca;
+  }
+
+  body {
+    background: #0f0f14;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 60px;
+  }
+
+  .label {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--fg-dim);
+    font-size: 13px;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .terminal {
+    width: 920px;
+    background: var(--bg-dark);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(122, 162, 247, 0.15),
+      0 25px 60px rgba(0,0,0,0.6),
+      0 0 120px rgba(122, 162, 247, 0.05);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--fg);
+  }
+
+  .titlebar {
+    background: var(--bg-float);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--bg-hl);
+  }
+
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot.r { background: #f7768e; }
+  .dot.y { background: #e0af68; }
+  .dot.g { background: #9ece6a; }
+
+  .titlebar-text {
+    flex: 1;
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: 12px;
+  }
+
+  .content {
+    padding: 16px 20px;
+    min-height: 520px;
+    position: relative;
+  }
+
+  .wordmark {
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.25;
+    white-space: pre;
+    margin-bottom: 4px;
+  }
+
+  .shimmer { animation: shimmer 3s linear infinite; }
+
+  @keyframes shimmer {
+    0%   { color: var(--blue); }
+    25%  { color: var(--cyan); }
+    50%  { color: var(--magenta); }
+    75%  { color: var(--blue); }
+    100% { color: var(--blue); }
+  }
+
+  .shimmer span:nth-child(1) { animation-delay: 0s; }
+  .shimmer span:nth-child(2) { animation-delay: 0.15s; }
+  .shimmer span:nth-child(3) { animation-delay: 0.3s; }
+  .shimmer span:nth-child(4) { animation-delay: 0.45s; }
+  .shimmer span:nth-child(5) { animation-delay: 0.6s; }
+  .shimmer span:nth-child(6) { animation-delay: 0.75s; }
+
+  .tagline {
+    color: var(--fg-dim);
+    font-style: italic;
+    margin-bottom: 16px;
+  }
+
+  .separator {
+    color: var(--bg-hl);
+    margin: 8px 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+  }
+
+  .tab {
+    padding: 2px 10px;
+    border-radius: 4px;
+    color: var(--fg-dim);
+    font-size: 12px;
+  }
+
+  .tab.active {
+    background: var(--blue);
+    color: var(--bg-dark);
+    font-weight: 700;
+  }
+
+  .section-head {
+    color: var(--blue);
+    font-weight: 700;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 8px;
+  }
+
+  .sku-name { color: var(--fg-bright); font-weight: 700; min-width: 150px; }
+  .pid { color: var(--fg-dim); min-width: 100px; }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--bg-dark);
+  }
+
+  .badge.green { background: var(--green); }
+  .badge.yellow { background: var(--yellow); }
+  .badge.cyan { background: var(--cyan); }
+  .badge.orange { background: var(--orange); }
+  .badge.red { background: var(--red); }
+
+  .method-name { color: var(--fg); min-width: 270px; }
+
+  .fact-label { color: var(--fg-dim); min-width: 110px; }
+  .fact-value { color: var(--fg); }
+
+  .statusbar {
+    background: var(--bg-float);
+    padding: 6px 16px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    border-top: 1px solid var(--bg-hl);
+  }
+
+  .statusbar .keys span { color: var(--fg-dim); }
+  .statusbar .keys { color: var(--fg); }
+  .statusbar .breadcrumb { color: var(--fg-dim); }
+  .statusbar .breadcrumb .active { color: var(--blue); font-weight: 700; }
+  .statusbar .breadcrumb .view { color: var(--fg); }
+
+  /* Install view */
+  .path-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--bg-dark);
+    margin-right: 8px;
+  }
+
+  .path-name { color: var(--fg-bright); font-weight: 700; }
+  .path-desc { color: var(--fg); padding-left: 40px; margin: 2px 0; }
+  .path-risk { padding-left: 40px; margin-bottom: 10px; }
+
+  .alert-head { color: var(--red); font-weight: 700; margin-top: 16px; }
+  .warning { color: var(--fg); padding-left: 20px; }
+  .warning .bullet { color: var(--fg-dim); }
+
+  /* Validation */
+  .check-done { color: var(--green); }
+  .check-open { color: var(--orange); }
+  .check-text-done { color: var(--fg); }
+  .check-text-open { color: var(--fg-dim); }
+
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+    color: var(--fg-dim);
+  }
+
+  .bar {
+    display: flex;
+    gap: 0;
+  }
+
+  .bar-fill { color: var(--green); }
+  .bar-empty { color: var(--bg-hl); }
+
+  /* Device */
+  .spec-label { color: var(--cyan); min-width: 140px; }
+  .spec-value { color: var(--fg); }
+
+  .sibling-name { color: var(--fg-bright); font-weight: 700; min-width: 200px; }
+  .sibling-desc { color: var(--fg-dim); }
+
+  /* Releases */
+  .artifact-name { color: var(--fg-bright); font-weight: 700; }
+  .artifact-use { color: var(--fg); padding-left: 16px; }
+  .artifact-persist { padding-left: 16px; font-size: 12px; }
+  .persist-yes { color: var(--green); }
+  .persist-no { color: var(--fg-dim); }
+
+  /* Hero wrapper for animated version */
+  .hero-wrap {
+    position: relative;
+  }
+
+  .glow {
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(122,162,247,0.1), rgba(187,154,247,0.1), rgba(125,207,255,0.1));
+    z-index: -1;
+    filter: blur(20px);
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO: Dashboard View ═══ -->
+<div>
+  <div class="label">Dashboard</div>
+  <div class="hero-wrap">
+    <div class="glow"></div>
+    <div class="terminal" id="dashboard">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <div class="titlebar-text">ews377-tui</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="content">
+        <div class="wordmark shimmer">
+<span>  ______  </span><span>_    _  </span><span>_____ ____  </span><span>______ ______</span><span>          </span><span>_____ </span>
+<span> |  ____||</span><span> |  | |/</span><span> ____|___ \|</span><span>____  |____  |</span><span>   /\   </span><span>|  __ \</span>
+<span> | |__   |</span><span> |  | | </span><span>(___   __) |</span><span>   / /    / /</span><span>   /  \  </span><span>| |__) |</span>
+<span> |  __|  |</span><span> |/\| |\_</span><span>__ \ |__ &lt;  </span><span> / /    / / </span><span>  / /\ \ </span><span>|  ___/ </span>
+<span> | |____ |</span><span>  /\  |__</span><span>__) |___) |</span><span> / /    / /  </span><span> / ____ \</span><span>| |     </span>
+<span> |______||</span><span>_/  \_|__</span><span>___/|____/</span><span> /_/    /_/  </span><span> /_/    \_</span><span>\_|     </span>
+        </div>
+        <div class="tagline">OpenWrt on EnGenius ap-hk07 &mdash; IPQ8072A Wi-Fi 6 access point</div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+        <div class="tabs">
+          <div class="tab active">1 Dashboard</div>
+          <div class="tab">2 Install Guide</div>
+          <div class="tab">3 Device Info</div>
+          <div class="tab">4 Validation</div>
+          <div class="tab">5 Releases</div>
+        </div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+
+        <div class="section-head">SKU Status</div>
+        <div class="row"><span class="sku-name">EWS377AP v3</span><span class="pid">pid 0x011a</span><span class="badge green">PROVEN</span></div>
+        <div class="row"><span class="sku-name">ECW230v3</span><span class="pid">pid 0x011c</span><span class="badge yellow">DTS VALIDATED</span></div>
+        <div class="row"><span class="sku-name">EWS377-FIT</span><span class="pid">pid 0x012c</span><span class="badge yellow">DTS VALIDATED</span></div>
+
+        <div class="section-head">Install Methods</div>
+        <div class="row"><span class="method-name">UART + u-boot nand write</span><span class="badge green">PROVEN</span></div>
+        <div class="row"><span class="method-name">SSH + ubiformat</span><span class="badge cyan">DOCUMENTED</span></div>
+        <div class="row"><span class="method-name">Web UI upload (Method B)</span><span class="badge orange">MECHANISM OK</span></div>
+        <div class="row"><span class="method-name">Initramfs RAM boot</span><span class="badge green">PROVEN</span></div>
+
+        <div class="section-head">Hardware</div>
+        <div class="row"><span class="fact-label">SoC</span><span class="fact-value">IPQ8072A (quad A53), ap-hk07</span></div>
+        <div class="row"><span class="fact-label">RAM</span><span class="fact-value">1 GiB</span></div>
+        <div class="row"><span class="fact-label">NAND</span><span class="fact-value">256 MB</span></div>
+        <div class="row"><span class="fact-label">Ethernet</span><span class="fact-value">2.5 GbE (QCA8081)</span></div>
+        <div class="row"><span class="fact-label">Wi-Fi</span><span class="fact-value">4x4 802.11ax dual-band (ath11k)</span></div>
+        <div class="row"><span class="fact-label">Release</span><span class="fact-value">v0.2</span></div>
+      </div>
+      <div class="statusbar">
+        <div class="keys"><span>1-5</span> view  <span>Tab</span> next  <span>?</span> help  <span>q</span> quit</div>
+        <div class="breadcrumb"><span class="active">EWS377</span> &gt; <span class="view">Dashboard</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Install Guide View ═══ -->
+<div>
+  <div class="label">Install Guide</div>
+  <div class="hero-wrap">
+    <div class="glow"></div>
+    <div class="terminal" id="install">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <div class="titlebar-text">ews377-tui</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="content">
+        <div class="wordmark shimmer" style="font-size:12px; line-height:1.2;">
+<span>  ______  </span><span>_    _  </span><span>_____ ____  </span><span>______ ______</span><span>          </span><span>_____ </span>
+<span> |  ____||</span><span> |  | |/</span><span> ____|___ \|</span><span>____  |____  |</span><span>   /\   </span><span>|  __ \</span>
+<span> | |__   |</span><span> |  | | </span><span>(___   __) |</span><span>   / /    / /</span><span>   /  \  </span><span>| |__) |</span>
+<span> |  __|  |</span><span> |/\| |\_</span><span>__ \ |__ &lt;  </span><span> / /    / / </span><span>  / /\ \ </span><span>|  ___/ </span>
+<span> | |____ |</span><span>  /\  |__</span><span>__) |___) |</span><span> / /    / /  </span><span> / ____ \</span><span>| |     </span>
+<span> |______||</span><span>_/  \_|__</span><span>___/|____/</span><span> /_/    /_/  </span><span> /_/    \_</span><span>\_|     </span>
+        </div>
+        <div class="tagline" style="font-size:12px">OpenWrt on EnGenius ap-hk07 &mdash; IPQ8072A Wi-Fi 6 access point</div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+        <div class="tabs">
+          <div class="tab">1 Dashboard</div>
+          <div class="tab active">2 Install Guide</div>
+          <div class="tab">3 Device Info</div>
+          <div class="tab">4 Validation</div>
+          <div class="tab">5 Releases</div>
+        </div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+
+        <div class="section-head">Install Paths</div>
+
+        <div style="margin: 8px 0;">
+          <span class="path-badge" style="background:var(--green)">A</span>
+          <span class="path-name">UART + u-boot (serial cable)</span>
+        </div>
+        <div class="path-desc">Proven, safest. Requires USB-to-serial adapter on header J2.</div>
+        <div class="path-risk"><span class="badge green">LOW RISK</span></div>
+
+        <div style="margin: 8px 0;">
+          <span class="path-badge" style="background:var(--orange)">B</span>
+          <span class="path-name">SSH + ubiformat (no cable)</span>
+        </div>
+        <div class="path-desc">Mirrored from WAX218 method. Not yet hardware-tested on EWS377.</div>
+        <div class="path-risk"><span class="badge orange">UNTESTED</span></div>
+
+        <div style="margin: 8px 0;">
+          <span class="path-badge" style="background:var(--red)">C</span>
+          <span class="path-name">Web UI upload (per-SKU image)</span>
+        </div>
+        <div class="path-desc">Download the .bin matching your SKU (282/284/300). Persistence unconfirmed.</div>
+        <div class="path-risk"><span class="badge red">EXPERIMENTAL</span></div>
+
+        <div class="alert-head" style="margin-top:16px">&triangle; Safety</div>
+        <div class="warning"><span class="bullet">&bull;</span> Back up NAND (MAC + radio cal are unique) before any flash</div>
+        <div class="warning"><span class="bullet">&bull;</span> Never write ART partition or bootloader region (0x0-0x1000000)</div>
+        <div class="warning"><span class="bullet">&bull;</span> Never hardcode an MTD number &mdash; verify live with cat /proc/mtd</div>
+        <div class="warning"><span class="bullet">&bull;</span> Keep UART attached until install method is proven on your unit</div>
+      </div>
+      <div class="statusbar">
+        <div class="keys"><span>1-5</span> view  <span>Tab</span> next  <span>?</span> help  <span>q</span> quit</div>
+        <div class="breadcrumb"><span class="active">EWS377</span> &gt; <span class="view">Install Guide</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Validation View ═══ -->
+<div>
+  <div class="label">Validation</div>
+  <div class="hero-wrap">
+    <div class="glow"></div>
+    <div class="terminal" id="validation">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <div class="titlebar-text">ews377-tui</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="content">
+        <div class="wordmark shimmer" style="font-size:12px; line-height:1.2;">
+<span>  ______  </span><span>_    _  </span><span>_____ ____  </span><span>______ ______</span><span>          </span><span>_____ </span>
+<span> |  ____||</span><span> |  | |/</span><span> ____|___ \|</span><span>____  |____  |</span><span>   /\   </span><span>|  __ \</span>
+<span> | |__   |</span><span> |  | | </span><span>(___   __) |</span><span>   / /    / /</span><span>   /  \  </span><span>| |__) |</span>
+<span> |  __|  |</span><span> |/\| |\_</span><span>__ \ |__ &lt;  </span><span> / /    / / </span><span>  / /\ \ </span><span>|  ___/ </span>
+<span> | |____ |</span><span>  /\  |__</span><span>__) |___) |</span><span> / /    / /  </span><span> / ____ \</span><span>| |     </span>
+<span> |______||</span><span>_/  \_|__</span><span>___/|____/</span><span> /_/    /_/  </span><span> /_/    \_</span><span>\_|     </span>
+        </div>
+        <div class="tagline" style="font-size:12px">OpenWrt on EnGenius ap-hk07 &mdash; IPQ8072A Wi-Fi 6 access point</div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+        <div class="tabs">
+          <div class="tab">1 Dashboard</div>
+          <div class="tab">2 Install Guide</div>
+          <div class="tab">3 Device Info</div>
+          <div class="tab active">4 Validation</div>
+          <div class="tab">5 Releases</div>
+        </div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+
+        <div class="section-head">Validation Checklist</div>
+
+        <div class="row"><span class="check-done">&#10003;</span> <span class="check-text-done">DTS identical across all 3 SKUs (reset, LEDs, WiFi, PHY)</span></div>
+        <div class="row"><span class="check-done">&#10003;</span> <span class="check-text-done">WiFi board-id 0x290 confirmed on all 3 SKUs</span></div>
+        <div class="row"><span class="check-done">&#10003;</span> <span class="check-text-done">Per-SKU capwap firmware_ver/datecode conventions extracted</span></div>
+        <div class="row"><span class="check-done">&#10003;</span> <span class="check-text-done">upload.cgi rejection cause identified (product_id mismatch)</span></div>
+        <div class="row"><span class="check-done">&#10003;</span> <span class="check-text-done">Multi-SKU build automation (3 web-ui images per release)</span></div>
+        <div class="row"><span class="check-open">&#9675;</span> <span class="check-text-open">Method B persistence on a second unit (community help wanted)</span></div>
+        <div class="row"><span class="check-open">&#9675;</span> <span class="check-text-open">SSH + ubiformat hardware test on any EnGenius SKU</span></div>
+        <div class="row"><span class="check-open">&#9675;</span> <span class="check-text-open">Live boot/flash state machine capture per SKU</span></div>
+        <div class="row"><span class="check-open">&#9675;</span> <span class="check-text-open">Radio/regulatory provenance per SKU (FCC ID, BDF variant)</span></div>
+
+        <div class="progress-bar">
+          Progress: 5/9&nbsp;&nbsp;[<span class="bar-fill">&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;</span><span class="bar-empty">&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;&#9617;</span>]
+        </div>
+      </div>
+      <div class="statusbar">
+        <div class="keys"><span>1-5</span> view  <span>Tab</span> next  <span>?</span> help  <span>q</span> quit</div>
+        <div class="breadcrumb"><span class="active">EWS377</span> &gt; <span class="view">Validation</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Device Info View ═══ -->
+<div>
+  <div class="label">Device Info</div>
+  <div class="hero-wrap">
+    <div class="glow"></div>
+    <div class="terminal" id="device">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <div class="titlebar-text">ews377-tui</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="content">
+        <div class="wordmark shimmer" style="font-size:12px; line-height:1.2;">
+<span>  ______  </span><span>_    _  </span><span>_____ ____  </span><span>______ ______</span><span>          </span><span>_____ </span>
+<span> |  ____||</span><span> |  | |/</span><span> ____|___ \|</span><span>____  |____  |</span><span>   /\   </span><span>|  __ \</span>
+<span> | |__   |</span><span> |  | | </span><span>(___   __) |</span><span>   / /    / /</span><span>   /  \  </span><span>| |__) |</span>
+<span> |  __|  |</span><span> |/\| |\_</span><span>__ \ |__ &lt;  </span><span> / /    / / </span><span>  / /\ \ </span><span>|  ___/ </span>
+<span> | |____ |</span><span>  /\  |__</span><span>__) |___) |</span><span> / /    / /  </span><span> / ____ \</span><span>| |     </span>
+<span> |______||</span><span>_/  \_|__</span><span>___/|____/</span><span> /_/    /_/  </span><span> /_/    \_</span><span>\_|     </span>
+        </div>
+        <div class="tagline" style="font-size:12px">OpenWrt on EnGenius ap-hk07 &mdash; IPQ8072A Wi-Fi 6 access point</div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+        <div class="tabs">
+          <div class="tab">1 Dashboard</div>
+          <div class="tab">2 Install Guide</div>
+          <div class="tab active">3 Device Info</div>
+          <div class="tab">4 Validation</div>
+          <div class="tab">5 Releases</div>
+        </div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+
+        <div class="section-head">Hardware Reference &mdash; EWS377AP v3</div>
+
+        <div class="row"><span class="spec-label">SoC</span><span class="spec-value">Qualcomm IPQ8072A (quad Cortex-A53 @ 2.2 GHz)</span></div>
+        <div class="row"><span class="spec-label">Board</span><span class="spec-value">ap-hk07 reference design</span></div>
+        <div class="row"><span class="spec-label">RAM</span><span class="spec-value">1 GiB DDR3 (confirmed live; some variants 512 MB)</span></div>
+        <div class="row"><span class="spec-label">NAND</span><span class="spec-value">256 MB SPI-NAND</span></div>
+        <div class="row"><span class="spec-label">Ethernet</span><span class="spec-value">1x 2.5 GbE LAN (QCA8081 @ MDIO 28, 2500base-x)</span></div>
+        <div class="row"><span class="spec-label">Wi-Fi 2.4G</span><span class="spec-value">4x4 802.11ax (ath11k, board_id=0x290)</span></div>
+        <div class="row"><span class="spec-label">Wi-Fi 5G</span><span class="spec-value">4x4 802.11ax (ath11k, board_id=0x290)</span></div>
+        <div class="row"><span class="spec-label">LEDs</span><span class="spec-value">RGB status on GPIO 54 / 55 / 56</span></div>
+        <div class="row"><span class="spec-label">Reset</span><span class="spec-value">GPIO 52</span></div>
+        <div class="row"><span class="spec-label">UART</span><span class="spec-value">Header J2, 115200 8N1</span></div>
+        <div class="row"><span class="spec-label">Boot</span><span class="spec-value">QCA u-boot 2.0.0, bootcmd=bootipq, dual A/B</span></div>
+        <div class="row"><span class="spec-label">Secure boot</span><span class="spec-value">NOT fused (custom images boot)</span></div>
+
+        <div class="section-head" style="margin-top:16px">Siblings (same ap-hk07 silicon)</div>
+        <div class="row"><span class="sibling-name">NETGEAR WAX218 v1</span><span class="sibling-desc">Officially supported in OpenWrt mainline</span></div>
+        <div class="row"><span class="sibling-name">EnGenius ECW230v3</span><span class="sibling-desc">DTS validated identical</span></div>
+        <div class="row"><span class="sibling-name">EnGenius EWS377-FIT</span><span class="sibling-desc">DTS validated identical</span></div>
+      </div>
+      <div class="statusbar">
+        <div class="keys"><span>1-5</span> view  <span>Tab</span> next  <span>?</span> help  <span>q</span> quit</div>
+        <div class="breadcrumb"><span class="active">EWS377</span> &gt; <span class="view">Device Info</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Releases View ═══ -->
+<div>
+  <div class="label">Releases</div>
+  <div class="hero-wrap">
+    <div class="glow"></div>
+    <div class="terminal" id="releases">
+      <div class="titlebar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <div class="titlebar-text">ews377-tui</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="content">
+        <div class="wordmark shimmer" style="font-size:12px; line-height:1.2;">
+<span>  ______  </span><span>_    _  </span><span>_____ ____  </span><span>______ ______</span><span>          </span><span>_____ </span>
+<span> |  ____||</span><span> |  | |/</span><span> ____|___ \|</span><span>____  |____  |</span><span>   /\   </span><span>|  __ \</span>
+<span> | |__   |</span><span> |  | | </span><span>(___   __) |</span><span>   / /    / /</span><span>   /  \  </span><span>| |__) |</span>
+<span> |  __|  |</span><span> |/\| |\_</span><span>__ \ |__ &lt;  </span><span> / /    / / </span><span>  / /\ \ </span><span>|  ___/ </span>
+<span> | |____ |</span><span>  /\  |__</span><span>__) |___) |</span><span> / /    / /  </span><span> / ____ \</span><span>| |     </span>
+<span> |______||</span><span>_/  \_|__</span><span>___/|____/</span><span> /_/    /_/  </span><span> /_/    \_</span><span>\_|     </span>
+        </div>
+        <div class="tagline" style="font-size:12px">OpenWrt on EnGenius ap-hk07 &mdash; IPQ8072A Wi-Fi 6 access point</div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+        <div class="tabs">
+          <div class="tab">1 Dashboard</div>
+          <div class="tab">2 Install Guide</div>
+          <div class="tab">3 Device Info</div>
+          <div class="tab">4 Validation</div>
+          <div class="tab active">5 Releases</div>
+        </div>
+        <div class="separator">────────────────────────────────────────────────────────────────────────────────────────</div>
+
+        <div class="section-head">Release Artifacts &mdash; v0.2</div>
+
+        <div style="margin:10px 0">
+          <span class="artifact-name">squashfs-factory.ubi</span>&nbsp;&nbsp;<span class="badge green">HW PROVEN</span>
+          <div class="artifact-use">UART/u-boot nand write, or SSH+ubiformat</div>
+          <div class="artifact-persist"><span class="persist-yes">persistent</span></div>
+        </div>
+
+        <div style="margin:10px 0">
+          <span class="artifact-name">initramfs-uImage.itb</span>&nbsp;&nbsp;<span class="badge green">PROVEN</span>
+          <div class="artifact-use">RAM boot (dry-run / recovery)</div>
+          <div class="artifact-persist"><span class="persist-no">temporary</span></div>
+        </div>
+
+        <div style="margin:10px 0">
+          <span class="artifact-name">squashfs-sysupgrade.bin</span>&nbsp;&nbsp;<span class="badge cyan">STANDARD</span>
+          <div class="artifact-use">Upgrade from running OpenWrt</div>
+          <div class="artifact-persist"><span class="persist-yes">persistent</span></div>
+        </div>
+
+        <div style="margin:10px 0">
+          <span class="artifact-name">web-ui-ews377apv3.bin</span>&nbsp;&nbsp;<span class="badge orange">EXPERIMENTAL</span>
+          <div class="artifact-use">OEM web upload &mdash; EWS377AP v3 (pid 282)</div>
+          <div class="artifact-persist"><span class="persist-no">temporary</span></div>
+        </div>
+
+        <div style="margin:10px 0">
+          <span class="artifact-name">web-ui-ecw230v3.bin</span>&nbsp;&nbsp;<span class="badge orange">EXPERIMENTAL</span>
+          <div class="artifact-use">OEM web upload &mdash; ECW230v3 cloud (pid 284)</div>
+          <div class="artifact-persist"><span class="persist-no">temporary</span></div>
+        </div>
+
+        <div style="margin:10px 0">
+          <span class="artifact-name">web-ui-ews377fit.bin</span>&nbsp;&nbsp;<span class="badge orange">EXPERIMENTAL</span>
+          <div class="artifact-use">OEM web upload &mdash; EWS377-FIT (pid 300)</div>
+          <div class="artifact-persist"><span class="persist-no">temporary</span></div>
+        </div>
+
+        <div style="margin-top:12px; color:var(--fg-dim); font-style:italic; font-size:12px;">
+          web-ui images are identical payloads &mdash; only the Senao header product_id differs
+        </div>
+      </div>
+      <div class="statusbar">
+        <div class="keys"><span>1-5</span> view  <span>Tab</span> next  <span>?</span> help  <span>q</span> quit</div>
+        <div class="breadcrumb"><span class="active">EWS377</span> &gt; <span class="view">Releases</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

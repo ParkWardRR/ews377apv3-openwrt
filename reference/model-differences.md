@@ -71,11 +71,16 @@ wrapped web images, mirror whatever field values each SKU's own real firmware us
 
 ## What's still open (needs live hardware, not just firmware analysis)
 
-- Whether the EnGenius `upload.cgi` argument-validation blocker (see
-  [`install-and-restore.md`](../docs/install-and-restore.md)) is common to all three
-  SKUs' web GUIs or specific to the EWS377AP v3 firmware train.
+- ~~Whether the EnGenius `upload.cgi` argument-validation blocker is common to all three
+  SKUs' web GUIs or specific to the EWS377AP v3 firmware train.~~ **Resolved,
+  2026-09-07:** the `upload.cgi` check is a `product_id` match against the running
+  firmware's own identity. Re-heading to the correct `product_id` (282/284/300)
+  unblocks the upload. See [`method-b-findings.md`](method-b-findings.md).
 - SSH + `ubiformat` install, hardware-tested on any EnGenius SKU (currently mirrored
-  from the WAX218, unverified here).
+  from the WAX218, unverified here). **Note:** ECW230v3 cloud firmware is confirmed to
+  have root SSH on port 8822, and the MTD map shows the same physical layout (slot 0 at
+  `0x1000000`, slot 1 at `0x8800000`) — only the partition **labels** differ
+  (`rootfs_1`/`rootfs` are swapped vs. EWS firmware). Target by offset, not label.
 - Real-radio Wi-Fi validation on ECW230v3 and EWS377-FIT specifically (board-id match
   is confirmed at the DTS level; actual RF performance/regulatory behavior not yet
   tested on those two SKUs).

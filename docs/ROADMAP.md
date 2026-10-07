@@ -52,7 +52,7 @@ sysupgrade behavior across units — those are separate, still-open items (§4).
    `0x1000000`) — matches both WAX218 and the OEM's own installer.
 3. **Same web-artifact construction.** `web-ui-factory.fit` = a kernel-only UBI built
    from the **initramfs** image via `ubinize-kernel | qsdk-ipq-factory-nand` — already
-   done for EWS377AP v3 ([`v0.2`](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/releases/tag/v0.2),
+   done for EWS377AP v3 ([`v0.2`](https://github.com/ParkWardRR/ews377apv3-openwrt/releases/tag/v0.2),
    verified structurally identical to the real upstream artifact). This is the one part
    that's **shared across all three SKUs** — see §3.
 4. **Same no-UART install method.** SSH + `ubiformat`, mirroring WAX218's documented
@@ -181,7 +181,7 @@ must state which row an artifact is, not just link the file.
       the resulting boot has not yet persisted on the one unit available, due to a
       unit-specific bad NAND block, not the mechanism or image. Needs a different unit
       to isolate unit-specific hardware from anything systemic. Tracked publicly —
-      **open, community help wanted**: [issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/1).
+      **open, community help wanted**: [issue #1](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
 - [ ] Hardware-test SSH + `ubiformat` (already documented) on at least one unit before
       calling it proven — currently mirrored from WAX218 but untested on any EnGenius SKU.
       **Still open — needs hardware.** Note: ECW230v3 cloud firmware is confirmed to have
@@ -233,7 +233,7 @@ hasn't yet persisted on the one unit available — a reproducible bad NAND block
 unit's spare slot, confirmed independent of image format. What's left is **not**
 reverse-engineering, it's **community validation**: someone with a second unit
 re-heading the current release image and confirming (or refuting) a clean, persistent
-boot. Tracked as [issue #1](https://github.com/ParkWardRR/openwrt-engenius-ews377ap-ecw230-ews377fit/issues/1).
+boot. Tracked as [issue #1](https://github.com/ParkWardRR/ews377apv3-openwrt/issues/1).
 
 **Phase 3 — Extend the device recipe: shared base DTS, one profile per SKU.** §4
 confirmed the DTS *properties* are identical across all three, so this is recipe-only —
@@ -250,15 +250,14 @@ the §4 regulatory/BDF item finds a real per-SKU difference. Build and RAM-boot-
 on real hardware before any NAND write, same gating this project has used throughout —
 a shared DTS is a strong prior, not a substitute for testing.
 
-**Phase 4 — Build & wrap three release images.** Automate: one shared kernel-only UBI
-build (§3), then three `mksenaofw`-wrapped artifacts using the confirmed per-SKU header
-fields from Phase 1. Publish as a single multi-SKU release (or three release assets in
-one tag) on this repo, each named after its SKU, each with its own `SHA256SUMS` line.
-**Include negative tests**, not just positive ones: confirm an EWS377AP v3-wrapped image
-is *rejected* by ECW230v3's and EWS377-FIT's own GUIs (and vice versa), and that a
-malformed header / correct header with a corrupted payload fails safely. Otherwise "all
-three wrappers work" could actually mean the validator accepts anything — the same
-failure mode as the argument-validation issue already found on EWS377AP v3.
+**Phase 4 — Build & wrap three release images.** ✅ **Automated, 2026-10-02.**
+`scripts/build-release.sh` takes a single source `web-ui-factory.bin` and produces three
+per-SKU images (`*-web-ui-ews377apv3.bin` pid 282, `*-web-ui-ecw230v3.bin` pid 284,
+`*-web-ui-ews377fit.bin` pid 300) via `quarry rehead`, with automatic inspection and
+`SHA256SUMS` generation. Docs updated: `install-and-restore.md` now directs users to
+download the pre-built image matching their SKU, and `README.md` lists all three in the
+downloads table. **Still open:** negative tests (confirming cross-SKU rejection and
+malformed-header rejection) — these require hardware and are tracked under Phase 5.
 
 **Phase 5 — Hardware validation, one SKU at a time.** For each SKU: UART/u-boot install
 first (proven method, safety net always present) → capture the live boot/flash state
@@ -387,5 +386,34 @@ The unit was a hardware/bootloader variant we had not seen. Full evidence:
    cannot read the XOR-encrypted OpenWrt-built `senao-factory.bin` header. Issues filed there.
 
 ### Next
-Finish the FIT checklist (§4), add `/etc/fw_env.config` for `0:appsblenv` (env size `0x40000`) so
-`fw_printenv`/`fw_setenv` work, find an ECW230v3 tester, and keep the per-SKU build assertion in release CI.
+
+1. **Finish the FIT checklist (§4)** — 2.5 GbE link, reset button/failsafe, LED mapping,
+   cold power-cycle, invalid-image rejection on EWS377-FIT.
+2. **Add `/etc/fw_env.config`** for `0:appsblenv` (env size `0x40000`) so
+   `fw_printenv`/`fw_setenv` work on the FIT variant.
+3. **Find an ECW230v3 tester** — the last unvalidated SKU. Community help wanted.
+4. **Per-SKU build assertion in release CI** — verify each image carries the correct
+   board file and device tree variant before publishing.
+5. **SSH + `ubiformat` hardware test** on any SKU — documented but never tested live.
+6. **Mainline PR preparation** — build against upstream `main`, pin toolchain + commit
+   hashes, confirm `ipq-wifi-*` redistribution terms, set `SUPPORTED_DEVICES` /
+   `DEVICE_COMPAT_VERSION` per SKU.
+
+## 10. Community & ecosystem
+
+The project now has a [community landscape map](community-landscape.md) documenting
+where this effort sits relative to other IPQ807x OpenWrt work, forum threads, and
+related projects. Key relationships:
+
+- **[openwrt-nss-edma](https://github.com/ParkWardRR/openwrt-nss-edma)** — the build
+  tree (OpenWrt fork with NSS hardware offload)
+- **[pelegrun-ap-hk07-firmware-tools](https://github.com/ParkWardRR/pelegrun-ap-hk07-firmware-tools)** —
+  cross-flash toolkit (SKU conversion, serial provisioning)
+- **[engenius-field-guide](https://github.com/ParkWardRR/engenius-field-guide)** —
+  EnGenius/Senao hardware field guide
+- **OpenWrt forum** — IPQ807x NSS offload threads, qualcommax target discussions
+- **qosmio/openwrt-ipq** — the NSS integration this fork builds on
+
+The long-term goal remains a **mainline OpenWrt PR** for the EWS377 family in
+`qualcommax/ipq807x`, following the WAX218 precedent. NSS offload itself stays as a
+community fork feature.
